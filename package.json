@@ -1,0 +1,28 @@
+{
+  "name": "lib-events",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "yarn run js:test && yarn run js:lint ",
+    "js:test": "./node_modules/.bin/jest",
+    "js:lint": "./node_modules/.bin/eslint index.js",
+    "js:lint-fix": "./node_modules/.bin/eslint --fix index.js"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "aws-sdk": "^2.200.0"
+  },
+  "devDependencies": {
+    "eslint": "^4.1.1",
+    "eslint-config-prettier": "^2.9.0",
+    "eslint-plugin-import": "^2.2.0",
+    "eslint-plugin-jest": "^20.0.3",
+    "eslint-plugin-prettier": "^2.3.1",
+    "jest": "^20.0.4",
+    "prettier": "^1.8.2"
+  },
+  "engines": {
+    "node": "8.9.0",
+    "yarn": "0.24.6 - 1.x"
+  }
+}

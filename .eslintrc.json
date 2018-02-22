@@ -1,0 +1,19 @@
+{
+  "env": {
+    "jest": true
+  },
+  "extends": [
+    "prettier"
+  ],
+  "plugins": [
+    "import",
+    "jest",
+    "prettier"
+  ],
+  "rules": {
+    "prettier/prettier": "error"
+  },
+  "parserOptions": {
+    "ecmaVersion": 2017
+  }
+}
