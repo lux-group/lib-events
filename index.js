@@ -8,7 +8,6 @@ const sns = new AWS.SNS({
 });
 
 const typeList = [
-  "ORDER_CREATED",
   "ORDER_PENDING",
   "ORDER_COMPLETED",
   "ORDER_CANCELLED",
@@ -23,7 +22,6 @@ const typeList = [
   "ORDERS_CHECKSUM",
   "ORDERS_CHECKSUM_ERROR",
 
-  "ORDER_ITEM_CREATED",
   "ORDER_ITEM_CREATED",
   "ORDER_ITEM_COMPLETED",
   "ORDER_ITEM_AWAITING_DATES",
