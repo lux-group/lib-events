@@ -7,9 +7,57 @@ const sns = new AWS.SNS({
   region: process.env.AWS_SNS_REGION
 });
 
-function dispatch({ type, uri, message }) {
+const types = {
+  ORDER_CREATED: "ORDER_CREATED",
+  ORDER_UPDATED: "ORDER_UPDATED",
+  ORDERS_CHECKSUM: "ORDERS_CHECKSUM",
+  ORDERS_CHECKSUM_ERROR: "ORDERS_CHECKSUM_ERROR",
+
+  ITEM_CREATED: "ITEM_CREATED",
+  ITEM_UPDATED: "ITEM_UPDATED",
+  ITEMS_CHECKSUM: "ITEMS_CHECKSUM",
+  ITEMS_CHECKSUM_ERROR: "ITEMS_CHECKSUM_ERROR"
+};
+
+class InvalidEventTypeError extends Error {
+  constructor(message, status) {
+    super(message);
+    this.name = this.constructor.name;
+    Error.captureStackTrace(this, this.constructor);
+  }
+}
+
+class InvalidEventChecksumError extends Error {
+  constructor(message, status) {
+    super(message);
+    this.name = this.constructor.name;
+    Error.captureStackTrace(this, this.constructor);
+  }
+}
+
+class InvalidEventSourceError extends Error {
+  constructor(message, status) {
+    super(message);
+    this.name = this.constructor.name;
+    Error.captureStackTrace(this, this.constructor);
+  }
+}
+
+function dispatch({ type, uri, checksum, source, message }) {
   if (process.env.IGNORE_EVENTS == "true") {
-    return;
+    return Promise.resolve();
+  }
+
+  if (!types[type]) {
+    throw new InvalidEventTypeError(`invalid event type '${type}'`);
+  }
+
+  if (isNaN(checksum)) {
+    throw new InvalidEventChecksumError("checksum is not a number");
+  }
+
+  if (!source) {
+    throw new InvalidEventSourceError("event source is required");
   }
 
   const eventParams = {
@@ -21,6 +69,14 @@ function dispatch({ type, uri, message }) {
       type: {
         DataType: "String",
         StringValue: type
+      },
+      checksum: {
+        DataType: "Number",
+        StringValue: checksum.toString()
+      },
+      source: {
+        DataType: "String",
+        StringValue: source
       }
     },
     TopicArn: process.env.AWS_SNS_TOPIC_ARN,
@@ -29,8 +85,6 @@ function dispatch({ type, uri, message }) {
 
   return sns.publish(eventParams).promise();
 }
-
-exports.dispatch = dispatch;
 
 const sqs = new AWS.SQS({
   apiVersion: "2012-11-05",
@@ -112,4 +166,13 @@ function poll(processMessage, n = 10, t = 1) {
   });
 }
 
-exports.poll = poll;
+module.exports = Object.assign(
+  {
+    poll,
+    dispatch,
+    InvalidEventTypeError,
+    InvalidEventChecksumError,
+    InvalidEventSourceError
+  },
+  types
+);

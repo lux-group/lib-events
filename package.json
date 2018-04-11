@@ -5,6 +5,7 @@
   "scripts": {
     "test": "yarn run js:test && yarn run js:lint ",
     "js:test": "./node_modules/.bin/jest",
+    "js:test-watch": "./node_modules/.bin/jest --watch",
     "js:lint": "./node_modules/.bin/eslint index.js",
     "js:lint-fix": "./node_modules/.bin/eslint --fix index.js"
   },

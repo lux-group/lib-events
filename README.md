@@ -2,6 +2,38 @@
 
 SNS messages and SQS queues helper lib
 
+## Dispatch
+
+```
+const { dispatch, ORDER_CREATED } = require('lib-events');
+
+dispatch({
+  type: ORDER_CREATED,
+  uri: `/api/orders/${order.id_orders}`,
+  checksum: order.checksum,
+  source: process.env.HEROKU_APP_NAME,
+  message: `${user.fullname} just purchased ${order.offer.name}`
+})
+```
+
+## Poll
+
+```
+const { poll, ORDER_CREATED } = require('lib-events');
+
+async function processMessage({ type, source }, ack) {
+  if (type === ORDER_CREATED) {
+    console.log(`${source} created an order!`);
+  }
+
+  await ack()
+}
+
+exports.process = async function () {
+  await poll(processMessage);
+}
+```
+
 ## Running tests
 
 ```
