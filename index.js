@@ -7,17 +7,40 @@ const sns = new AWS.SNS({
   region: process.env.AWS_SNS_REGION
 });
 
-const types = {
-  ORDER_CREATED: "ORDER_CREATED",
-  ORDER_UPDATED: "ORDER_UPDATED",
-  ORDERS_CHECKSUM: "ORDERS_CHECKSUM",
-  ORDERS_CHECKSUM_ERROR: "ORDERS_CHECKSUM_ERROR",
+const typeList = [
+  "ORDER_CREATED",
+  "ORDER_PENDING",
+  "ORDER_COMPLETED",
+  "ORDER_CANCELLED",
+  "ORDER_REFUNDED",
+  "ORDER_ABANDONED",
+  "ORDER_AWAITING_PAYMENT",
+  "ORDER_AWAITING_PURCHASE",
+  "ORDER_NEEDS_ATTENTION",
+  "ORDER_PAYMENT_FAILED",
+  "ORDER_TOUCH",
 
-  ITEM_CREATED: "ITEM_CREATED",
-  ITEM_UPDATED: "ITEM_UPDATED",
-  ITEMS_CHECKSUM: "ITEMS_CHECKSUM",
-  ITEMS_CHECKSUM_ERROR: "ITEMS_CHECKSUM_ERROR"
+  "ORDERS_CHECKSUM",
+  "ORDERS_CHECKSUM_ERROR",
+
+  "ORDER_ITEM_CREATED",
+  "ORDER_ITEM_CREATED",
+  "ORDER_ITEM_COMPLETED",
+  "ORDER_ITEM_AWAITING_DATES",
+  "ORDER_ITEM_FAILED",
+  "ORDER_ITEM_CANCELLED",
+  "ORDER_ITEM_TOUCH",
+
+  "ORDER_ITEMS_CHECKSUM",
+  "ORDER_ITEMS_CHECKSUM_ERROR"
+];
+
+const typeReducer = (accumulator, currentValue) => {
+  accumulator[currentValue] = currentValue;
+  return accumulator;
 };
+
+const types = typeList.reduce(typeReducer, {});
 
 class InvalidEventTypeError extends Error {
   constructor(message, status) {
