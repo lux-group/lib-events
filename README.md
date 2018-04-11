@@ -4,7 +4,7 @@ SNS messages and SQS queues helper lib
 
 ## Dispatch
 
-```
+```js
 const { dispatch, ORDER_CREATED } = require('lib-events');
 
 dispatch({
@@ -18,7 +18,7 @@ dispatch({
 
 ## Poll
 
-```
+```js
 const { poll, ORDER_CREATED } = require('lib-events');
 
 async function processMessage({ type, source }, ack) {
