@@ -5,6 +5,7 @@ const {
   InvalidEventTypeError,
 	InvalidEventChecksumError,
 	InvalidEventSourceError,
+  InvalidEventMessageError,
   ORDERS_CHECKSUM
 } = require('./index.js');
 
@@ -56,6 +57,22 @@ it('should throw error no source', function() {
   }
 
   const error = new InvalidEventSourceError('event source is required');
+
+  expect(fun).toThrow(error)
+});
+
+it('should throw error no source', function() {
+  const fun = () => {
+    dispatch({
+      type: ORDERS_CHECKSUM,
+      uri: '/api',
+      checksum: 1,
+      source: 'test',
+      message: null
+    })
+  }
+
+  const error = new InvalidEventMessageError('event message is required');
 
   expect(fun).toThrow(error)
 });

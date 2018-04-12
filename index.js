@@ -64,11 +64,15 @@ class InvalidEventSourceError extends Error {
   }
 }
 
-function dispatch({ type, uri, checksum, source, message }) {
-  if (process.env.IGNORE_EVENTS == "true") {
-    return Promise.resolve();
+class InvalidEventMessageError extends Error {
+  constructor(message, status) {
+    super(message);
+    this.name = this.constructor.name;
+    Error.captureStackTrace(this, this.constructor);
   }
+}
 
+function dispatch({ type, uri, id, checksum, source, message }) {
   if (!types[type]) {
     throw new InvalidEventTypeError(`invalid event type '${type}'`);
   }
@@ -81,28 +85,45 @@ function dispatch({ type, uri, checksum, source, message }) {
     throw new InvalidEventSourceError("event source is required");
   }
 
-  const eventParams = {
-    MessageAttributes: {
-      uri: {
-        DataType: "String",
-        StringValue: `${process.env.API_HOST}${uri}`
-      },
-      type: {
-        DataType: "String",
-        StringValue: type
-      },
-      checksum: {
-        DataType: "Number",
-        StringValue: checksum.toString()
-      },
-      source: {
-        DataType: "String",
-        StringValue: source
-      }
+  if (!message) {
+    throw new InvalidEventMessageError("event message is required");
+  }
+
+  const messageAttributes = {
+    uri: {
+      DataType: "String",
+      StringValue: `${process.env.API_HOST}${uri}`
     },
+    type: {
+      DataType: "String",
+      StringValue: type
+    },
+    checksum: {
+      DataType: "Number",
+      StringValue: checksum.toString()
+    },
+    source: {
+      DataType: "String",
+      StringValue: source
+    }
+  };
+
+  if (id) {
+    messageAttributes.id = {
+      DataType: "String",
+      StringValue: id
+    };
+  }
+
+  const eventParams = {
+    MessageAttributes: messageAttributes,
     TopicArn: process.env.AWS_SNS_TOPIC_ARN,
     Message: message
   };
+
+  if (process.env.IGNORE_EVENTS == "true") {
+    return Promise.resolve();
+  }
 
   return sns.publish(eventParams).promise();
 }
@@ -193,7 +214,8 @@ module.exports = Object.assign(
     dispatch,
     InvalidEventTypeError,
     InvalidEventChecksumError,
-    InvalidEventSourceError
+    InvalidEventSourceError,
+    InvalidEventMessageError
   },
   types
 );
