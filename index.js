@@ -137,11 +137,6 @@ const sqs = new AWS.SQS({
 
 const queueUrl = process.env.AWS_SQS_QUERY_URL;
 
-const receiveMessageParams = {
-  QueueUrl: queueUrl,
-  MaxNumberOfMessages: 10
-};
-
 function deleteMessage(message) {
   return function ack() {
     return new Promise((accept, reject) => {
@@ -188,7 +183,7 @@ function receiveMessages(processMessage, data) {
   });
 }
 
-function wait(processMessage) {
+function wait(processMessage, receiveMessageParams) {
   return new Promise((accept, reject) => {
     sqs.receiveMessage(receiveMessageParams, (err, data) => {
       if (err) {
@@ -201,11 +196,11 @@ function wait(processMessage) {
   });
 }
 
-function pollStart(processMessage, n, t) {
+function pollStart(processMessage, n, t, receiveMessageParams) {
   if (t >= n) {
     return Promise.resolve();
   }
-  return wait(processMessage).then(results => {
+  return wait(processMessage, receiveMessageParams).then(results => {
     if (results.length == 0) {
       return Promise.resolve();
     }
@@ -213,8 +208,19 @@ function pollStart(processMessage, n, t) {
   });
 }
 
-function poll(processMessage, { maxNumberOfMessages }) {
-  return pollStart(processMessage, maxNumberOfMessages || 10, 1);
+function poll(
+  processMessage,
+  { maxNumberOfMessages, maxIterations } = {
+    maxNumberOfMessages: 10,
+    maxIterations: 10
+  }
+) {
+  const receiveMessageParams = {
+    QueueUrl: queueUrl,
+    MaxNumberOfMessages: maxNumberOfMessages
+  };
+
+  return pollStart(processMessage, maxIterations, 1, receiveMessageParams);
 }
 
 module.exports = Object.assign(

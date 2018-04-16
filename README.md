@@ -21,7 +21,7 @@ dispatch({
 ```js
 const { poll, ORDER_CREATED } = require('lib-events');
 
-async function processMessage({ type, source }, ack) {
+async function processMessage({ type, source, id, checksum }, ack) {
   if (type === ORDER_CREATED) {
     console.log(`${source} created an order!`);
   }
@@ -30,7 +30,10 @@ async function processMessage({ type, source }, ack) {
 }
 
 exports.process = async function () {
-  await poll(processMessage);
+  await poll(processMessage, {
+    maxNumberOfMessages: 10,
+    maxIterations: 10
+  });
 }
 ```
 
