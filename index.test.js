@@ -2,6 +2,7 @@ const assert = require('assert');
 const {
   dispatch,
   poll,
+  getAttributes,
   InvalidEventTypeError,
 	InvalidEventChecksumError,
 	InvalidEventSourceError,
@@ -75,4 +76,56 @@ it('should throw error no source', function() {
   const error = new InvalidEventMessageError('event message is required');
 
   expect(fun).toThrow(error)
+});
+
+it('should pluck the message attributes', function() {
+  const attributes = {
+    type: 'ORDERS_CHECKSUM',
+    uri: 'http://api.luxgroup.com',
+    id: 'abcd',
+    checksum: 1
+  }
+
+  const body = JSON.stringify({
+    MessageAttributes: {
+      type: {
+        Value: 'ORDERS_CHECKSUM'
+      },
+      uri: {
+        Value: 'http://api.luxgroup.com'
+      },
+      id: {
+        Value: 'abcd'
+      },
+      checksum: {
+        Value: 1
+      }
+    }
+  });
+
+  expect(getAttributes(body)).toEqual(attributes)
+});
+
+it('should pluck the message attributes without id', function() {
+  const attributes = {
+    type: 'ORDERS_CHECKSUM',
+    uri: 'http://api.luxgroup.com',
+    checksum: 1
+  }
+
+  const body = JSON.stringify({
+    MessageAttributes: {
+      type: {
+        Value: 'ORDERS_CHECKSUM'
+      },
+      uri: {
+        Value: 'http://api.luxgroup.com'
+      },
+      checksum: {
+        Value: 1
+      }
+    }
+  });
+
+  expect(getAttributes(body)).toEqual(attributes)
 });

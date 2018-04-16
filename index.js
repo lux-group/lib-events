@@ -166,12 +166,17 @@ function deleteMessage(message) {
 
 function getAttributes(body) {
   const data = JSON.parse(body);
-  const { type, uri } = data.MessageAttributes;
 
-  return {
-    type: type.Value,
-    uri: uri.Value
+  const attributeReducer = (accumulator, currentValue) => {
+    if (data.MessageAttributes[currentValue]) {
+      accumulator[currentValue] = data.MessageAttributes[currentValue].Value;
+    }
+    return accumulator;
   };
+
+  const attributeList = ["type", "uri", "id", "checksum"];
+
+  return attributeList.reduce(attributeReducer, {});
 }
 
 function receiveMessages(processMessage, data) {
@@ -196,7 +201,7 @@ function wait(processMessage) {
   });
 }
 
-function poll(processMessage, n = 10, t = 1) {
+function pollStart(processMessage, n, t) {
   if (t >= n) {
     return Promise.resolve();
   }
@@ -208,10 +213,15 @@ function poll(processMessage, n = 10, t = 1) {
   });
 }
 
+function poll(processMessage, { maxNumberOfMessages }) {
+  return pollStart(processMessage, maxNumberOfMessages || 10, 1);
+}
+
 module.exports = Object.assign(
   {
     poll,
     dispatch,
+    getAttributes,
     InvalidEventTypeError,
     InvalidEventChecksumError,
     InvalidEventSourceError,
