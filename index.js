@@ -28,6 +28,7 @@ const typeList = [
   "ORDER_ITEM_FAILED",
   "ORDER_ITEM_CANCELLED",
   "ORDER_ITEM_TOUCH",
+  "ORDER_ITEM_CHANGE_DATES",
 
   "ORDER_ITEMS_CHECKSUM",
   "ORDER_ITEMS_CHECKSUM_ERROR"
@@ -220,7 +221,7 @@ function poll(
     MaxNumberOfMessages: maxNumberOfMessages
   };
 
-  return pollStart(processMessage, maxIterations, 1, receiveMessageParams);
+  return pollStart(processMessage, maxIterations, 0, receiveMessageParams);
 }
 
 module.exports = Object.assign(
