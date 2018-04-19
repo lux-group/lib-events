@@ -7,6 +7,7 @@ const {
 	InvalidEventChecksumError,
 	InvalidEventSourceError,
   InvalidEventMessageError,
+  ORDER_PENDING,
   ORDERS_CHECKSUM
 } = require('./index.js');
 
@@ -33,7 +34,7 @@ it('should throw error if invalid type', function() {
 it('should throw error if invalid checksum', function() {
   const fun = () => {
     dispatch({
-      type: ORDERS_CHECKSUM,
+      type: ORDER_PENDING,
       uri: '/api',
       checksum: 'x',
       source: 'test',
@@ -49,7 +50,7 @@ it('should throw error if invalid checksum', function() {
 it('should throw error no source', function() {
   const fun = () => {
     dispatch({
-      type: ORDERS_CHECKSUM,
+      type: ORDER_PENDING,
       uri: '/api',
       checksum: 1,
       source: null,
@@ -65,7 +66,7 @@ it('should throw error no source', function() {
 it('should throw error no source', function() {
   const fun = () => {
     dispatch({
-      type: ORDERS_CHECKSUM,
+      type: ORDER_PENDING,
       uri: '/api',
       checksum: 1,
       source: 'test',
@@ -81,8 +82,6 @@ it('should throw error no source', function() {
 it('should pluck the message attributes', function() {
   const attributes = {
     type: 'ORDERS_CHECKSUM',
-    uri: 'http://api.luxgroup.com',
-    id: 'abcd',
     checksum: 1
   }
 
@@ -90,12 +89,6 @@ it('should pluck the message attributes', function() {
     MessageAttributes: {
       type: {
         Value: 'ORDERS_CHECKSUM'
-      },
-      uri: {
-        Value: 'http://api.luxgroup.com'
-      },
-      id: {
-        Value: 'abcd'
       },
       checksum: {
         Value: 1
@@ -109,7 +102,6 @@ it('should pluck the message attributes', function() {
 it('should pluck the message attributes without id', function() {
   const attributes = {
     type: 'ORDERS_CHECKSUM',
-    uri: 'http://api.luxgroup.com',
     checksum: 1
   }
 
@@ -117,9 +109,6 @@ it('should pluck the message attributes without id', function() {
     MessageAttributes: {
       type: {
         Value: 'ORDERS_CHECKSUM'
-      },
-      uri: {
-        Value: 'http://api.luxgroup.com'
       },
       checksum: {
         Value: 1

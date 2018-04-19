@@ -91,10 +91,6 @@ function dispatch({ type, uri, id, checksum, source, message }) {
   }
 
   const messageAttributes = {
-    uri: {
-      DataType: "String",
-      StringValue: `${process.env.API_HOST}${uri}`
-    },
     type: {
       DataType: "String",
       StringValue: type
@@ -108,6 +104,13 @@ function dispatch({ type, uri, id, checksum, source, message }) {
       StringValue: source
     }
   };
+
+  if (uri) {
+    messageAttributes.uri = {
+      DataType: "String",
+      StringValue: `${process.env.API_HOST}${uri}`
+    };
+  }
 
   if (id) {
     messageAttributes.id = {
