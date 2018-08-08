@@ -1,6 +1,6 @@
 {
   "name": "lib-events",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "main": "index.js",
   "scripts": {
     "test": "yarn run js:test && yarn run js:lint ",
