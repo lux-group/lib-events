@@ -33,7 +33,9 @@ const typeList = [
   "ORDER_ITEM_UPDATE_RESERVATION",
 
   "ORDER_ITEMS_CHECKSUM",
-  "ORDER_ITEMS_CHECKSUM_ERROR"
+  "ORDER_ITEMS_CHECKSUM_ERROR",
+
+  "OFFER_UPDATE"
 ];
 
 const typeReducer = (accumulator, currentValue) => {
