@@ -38,7 +38,9 @@ const typeList = [
   "OFFER_UPDATE",
 
   "PROPERTY_UPDATE",
-  "PROPERTY_DELETE"
+  "PROPERTY_DELETE",
+
+  "VOUCHER_UPDATE"
 ];
 
 const typeReducer = (accumulator, currentValue) => {
