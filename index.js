@@ -40,7 +40,10 @@ const typeList = [
   "PROPERTY_UPDATE",
   "PROPERTY_DELETE",
 
-  "VOUCHER_UPDATE"
+  "VOUCHER_UPDATE",
+
+  "TOUR_UPDATE",
+  "TOUR_DELETE"
 ];
 
 const typeReducer = (accumulator, currentValue) => {
