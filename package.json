@@ -1,13 +1,17 @@
 {
-  "name": "lib-events",
+  "name": "@luxuryescapes/lib-events",
   "version": "1.0.12",
   "main": "index.js",
   "scripts": {
-    "test": "yarn run js:test && yarn run js:lint ",
-    "js:test": "./node_modules/.bin/jest",
-    "js:test-watch": "./node_modules/.bin/jest --watch",
-    "js:lint": "./node_modules/.bin/eslint index.js",
-    "js:lint-fix": "./node_modules/.bin/eslint --fix index.js"
+    "test": "./node_modules/.bin/jest && yarn run lint",
+    "test-watch": "./node_modules/.bin/jest --watch",
+    "lint": "./node_modules/.bin/eslint index.js",
+    "lint-fix": "./node_modules/.bin/eslint --fix index.js",
+    "build": "echo \"no build\"",
+    "prepare": "yarn run build",
+    "prepublishOnly": "yarn test && yarn run lint",
+    "preversion": "yarn run lint",
+    "postversion": "git push && git push --tags"
   },
   "license": "UNLICENSED",
   "dependencies": {
