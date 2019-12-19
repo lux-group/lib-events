@@ -43,7 +43,12 @@ const typeList = [
   "VOUCHER_UPDATE",
 
   "TOUR_UPDATE",
-  "TOUR_DELETE"
+  "TOUR_DELETE",
+
+  "FLIGHT_ITEM_CREATED",
+  "FLIGHT_ITEM_COMPLETED",
+  "FLIGHT_ITEM_FAILED",
+  "FLIGHT_ITEM_CANCELLED"
 ];
 
 const typeReducer = (accumulator, currentValue) => {
