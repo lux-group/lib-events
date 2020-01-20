@@ -181,8 +181,10 @@ function deleteMessage(message) {
 }
 
 function getAttributes(body) {
-  const data = JSON.parse(body);
+  return mapAttributes(JSON.parse(body));
+}
 
+function mapAttributes(data) {
   const attributeReducer = (accumulator, currentValue) => {
     if (data.MessageAttributes[currentValue]) {
       accumulator[currentValue] = data.MessageAttributes[currentValue].Value;
@@ -249,6 +251,7 @@ module.exports = Object.assign(
     poll,
     dispatch,
     getAttributes,
+    mapAttributes,
     InvalidEventTypeError,
     InvalidEventChecksumError,
     InvalidEventSourceError,

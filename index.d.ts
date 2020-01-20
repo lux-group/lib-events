@@ -1,3 +1,5 @@
+import { SNSMessageAttributes } from "aws-lambda";
+
 declare module "@luxuryescapes/lib-events" {
   type Message = {
     type: string;
@@ -8,6 +10,8 @@ declare module "@luxuryescapes/lib-events" {
   };
 
   function poll(processMessage: Function): Promise<void>;
+
+  function mapAttributes(data: SNSMessageAttributes): Message;
 
   const ORDER_PENDING: string;
   const ORDER_COMPLETED: string;

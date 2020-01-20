@@ -15,6 +15,7 @@
   },
   "license": "UNLICENSED",
   "dependencies": {
+    "@types/aws-lambda": "^8.10.40",
     "aws-sdk": "^2.200.0"
   },
   "devDependencies": {
