@@ -1,6 +1,6 @@
 {
   "name": "@luxuryescapes/lib-events",
-  "version": "1.0.21",
+  "version": "1.0.22",
   "main": "index.js",
   "scripts": {
     "test": "./node_modules/.bin/jest && yarn run lint",
