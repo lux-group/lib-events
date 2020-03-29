@@ -44,7 +44,7 @@ declare module "@luxuryescapes/lib-events" {
 
   const PROPERTY_UPDATE: string;
   const PROPERTY_DELETE: string;
-  const PROPERTY_SITEMINDER_MAPPING_ERROR: string;
+  const HOTEL_RESERVATION_SITEMINDER_ERROR: string;
 
   const VOUCHER_UPDATE: string;
 
