@@ -37,6 +37,8 @@ declare module "@luxuryescapes/lib-events" {
   const ORDER_ITEM_DELETE_RESERVATION: string;
   const ORDER_ITEM_UPDATE_RESERVATION: string;
 
+  const ORDER_ADDON_ITEM_CANCELLED: string;
+
   const ORDER_ITEMS_CHECKSUM: string;
   const ORDER_ITEMS_CHECKSUM_ERROR: string;
 
