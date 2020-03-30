@@ -36,25 +36,25 @@ declare module "@luxuryescapes/lib-events" {
   const ORDER_ITEM_CHANGE_DATES: string;
   const ORDER_ITEM_DELETE_RESERVATION: string;
   const ORDER_ITEM_UPDATE_RESERVATION: string;
+  const ORDER_ITEMS_CHECKSUM: string;
+  const ORDER_ITEMS_CHECKSUM_ERROR: string;
 
   const ORDER_ADDON_ITEM_CANCELLED: string;
 
-  const ORDER_ITEMS_CHECKSUM: string;
-  const ORDER_ITEMS_CHECKSUM_ERROR: string;
+  const ORDER_FLIGHT_ITEM_CREATED: string;
+  const ORDER_FLIGHT_ITEM_COMPLETED: string;
+  const ORDER_FLIGHT_ITEM_FAILED: string;
+  const ORDER_FLIGHT_ITEM_CANCELLED: string;
 
   const OFFER_UPDATE: string;
 
   const PROPERTY_UPDATE: string;
   const PROPERTY_DELETE: string;
+
   const HOTEL_RESERVATION_SITEMINDER_ERROR: string;
 
   const VOUCHER_UPDATE: string;
 
   const TOUR_UPDATE: string;
   const TOUR_DELETE: string;
-
-  const FLIGHT_ITEM_CREATED: string;
-  const FLIGHT_ITEM_COMPLETED: string;
-  const FLIGHT_ITEM_FAILED: string;
-  const FLIGHT_ITEM_CANCELLED: string;
 }
