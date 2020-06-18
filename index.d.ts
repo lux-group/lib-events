@@ -46,6 +46,11 @@ declare module "@luxuryescapes/lib-events" {
   const ORDER_FLIGHT_ITEM_FAILED: string;
   const ORDER_FLIGHT_ITEM_CANCELLED: string;
 
+  const ORDER_DYNAMIC_RATE_HOTEL_ITEM_CREATED: string;
+  const ORDER_DYNAMIC_RATE_HOTEL_ITEM_COMPLETED: string;
+  const ORDER_DYNAMIC_RATE_HOTEL_ITEM_FAILED: string;
+  const ORDER_DYNAMIC_RATE_HOTEL_ITEM_CANCELLED: string;
+
   const OFFER_UPDATE: string;
 
   const PROPERTY_UPDATE: string;
@@ -53,7 +58,7 @@ declare module "@luxuryescapes/lib-events" {
 
   const HOTEL_RESERVATION_SITEMINDER_ERROR: string;
   const HOTEL_RESERVATION_TRAVELCLICK_ERROR: string;
-  
+
   const VOUCHER_UPDATE: string;
 
   const TOUR_UPDATE: string;
