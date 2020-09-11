@@ -9,7 +9,12 @@ declare module "@luxuryescapes/lib-events" {
     checksum: string;
   };
 
-  function poll(processMessage: Function): Promise<void>;
+  type PollingOptions = {
+    maxNumberOfMessages: number;
+    maxIterations: number;
+  }
+
+  function poll(processMessage: Function, options: PollingOptions): Promise<void>;
 
   function mapAttributes(data: SNSMessage): Message;
 
