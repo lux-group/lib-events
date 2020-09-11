@@ -187,7 +187,11 @@ function deleteMessage(message) {
 }
 
 function getAttributes(body) {
-  return mapAttributes(JSON.parse(body));
+  const bodyJson = JSON.parse(body);
+  // handle s3 upload event
+  if (bodyJson.Records) return bodyJson.Records;
+
+  return mapAttributes(bodyJson);
 }
 
 function mapAttributes(data) {
