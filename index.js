@@ -190,8 +190,13 @@ function getAttributes(body) {
   const bodyJson = JSON.parse(body);
   // handle s3 upload event
   if (bodyJson.Records) return bodyJson.Records;
+  else if (bodyJson.MessageAttributes) {
+    // handle sns message
+    return mapAttributes(bodyJson);
+  }
 
-  return mapAttributes(bodyJson);
+  // do nothing if the message type it not what we need
+  return {};
 }
 
 function mapAttributes(data) {
