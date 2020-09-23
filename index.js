@@ -134,9 +134,9 @@ function dispatch({ type, uri, id, checksum, source, message, json }) {
     throw new InvalidEventMessageError("event message is required");
   }
 
-  let JsonStr;
+  let jsonStr;
   try {
-    JsonStr = JSON.stringify(json);
+    jsonStr = JSON.stringify(json);
   } catch (e) {
     throw new InvalidEventJsonError("event json is invalid");
   }
@@ -156,7 +156,7 @@ function dispatch({ type, uri, id, checksum, source, message, json }) {
     },
     json: {
       DataType: "String",
-      StringValue: JsonStr
+      StringValue: jsonStr
     }
   };
 
