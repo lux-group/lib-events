@@ -7,6 +7,9 @@ const sns = new AWS.SNS({
   region: process.env.AWS_SNS_REGION
 });
 
+// Amazon SNS currently allows a maximum size of 256 KB for published messages.
+const MAX_EVENT_MESSAGE_SIZE = 256 * 1024;
+
 const typeList = [
   "ORDER_PENDING",
   "ORDER_COMPLETED",
@@ -98,7 +101,23 @@ class InvalidEventMessageError extends Error {
   }
 }
 
-function dispatch({ type, uri, id, checksum, source, message }) {
+class InvalidEventJsonError extends Error {
+  constructor(message, status) {
+    super(message);
+    this.name = this.constructor.name;
+    Error.captureStackTrace(this, this.constructor);
+  }
+}
+
+class InvalidEventSizeError extends Error {
+  constructor(message, status) {
+    super(message);
+    this.name = this.constructor.name;
+    Error.captureStackTrace(this, this.constructor);
+  }
+}
+
+function dispatch({ type, uri, id, checksum, source, message, json }) {
   if (!types[type]) {
     throw new InvalidEventTypeError(`invalid event type '${type}'`);
   }
@@ -115,6 +134,13 @@ function dispatch({ type, uri, id, checksum, source, message }) {
     throw new InvalidEventMessageError("event message is required");
   }
 
+  let JsonStr;
+  try {
+    JsonStr = JSON.stringify(json);
+  } catch (e) {
+    throw new InvalidEventJsonError("event json is invalid");
+  }
+
   const messageAttributes = {
     type: {
       DataType: "String",
@@ -127,6 +153,10 @@ function dispatch({ type, uri, id, checksum, source, message }) {
     source: {
       DataType: "String",
       StringValue: source
+    },
+    json: {
+      DataType: "String",
+      StringValue: JsonStr
     }
   };
 
@@ -149,6 +179,13 @@ function dispatch({ type, uri, id, checksum, source, message }) {
     TopicArn: process.env.AWS_SNS_TOPIC_ARN,
     Message: message
   };
+
+  if (
+    Buffer.byteLength(JSON.stringify(eventParams), "utf8") >
+    MAX_EVENT_MESSAGE_SIZE
+  ) {
+    throw new InvalidEventSizeError("json message exceeded limit of 256KB");
+  }
 
   if (process.env.IGNORE_EVENTS == "true") {
     return Promise.resolve();
@@ -191,7 +228,9 @@ function deleteMessage(message) {
 function getAttributes(body) {
   const bodyJson = JSON.parse(body);
   // handle s3 upload event
-  if (bodyJson.Records) return bodyJson.Records;
+  // currently we can only one record per s3 event
+  // https://stackoverflow.com/questions/40765699/how-many-records-can-be-in-s3-put-event-lambda-trigger/40767563#40767563
+  if (bodyJson.Records) return bodyJson.Records[0];
   else if (bodyJson.MessageAttributes) {
     // handle sns message
     return mapAttributes(bodyJson);
@@ -204,12 +243,22 @@ function getAttributes(body) {
 function mapAttributes(data) {
   const attributeReducer = (accumulator, currentValue) => {
     if (data.MessageAttributes[currentValue]) {
-      accumulator[currentValue] = data.MessageAttributes[currentValue].Value;
+      if (currentValue === "json") {
+        try {
+          accumulator[currentValue] = JSON.parse(
+            data.MessageAttributes[currentValue].Value
+          );
+        } catch (e) {
+          throw new InvalidEventJsonError(`unable to parse json`);
+        }
+      } else {
+        accumulator[currentValue] = data.MessageAttributes[currentValue].Value;
+      }
     }
     return accumulator;
   };
 
-  const attributeList = ["type", "uri", "id", "checksum"];
+  const attributeList = ["type", "uri", "id", "checksum", "json"];
 
   return attributeList.reduce(attributeReducer, {});
 }
