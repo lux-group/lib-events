@@ -136,7 +136,7 @@ function dispatch({ type, uri, id, checksum, source, message, json }) {
 
   let jsonStr;
   try {
-    jsonStr = JSON.stringify(json);
+    jsonStr = JSON.stringify(Object.assign({ type, id }, json));
   } catch (e) {
     throw new InvalidEventJsonError("event json is invalid");
   }
