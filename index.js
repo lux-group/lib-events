@@ -1,4 +1,5 @@
 const AWS = require("aws-sdk");
+const { encodeJson, decodeJson } = require("./base58");
 
 const sns = new AWS.SNS({
   apiVersion: "2010-03-31",
@@ -134,9 +135,9 @@ function dispatch({ type, uri, id, checksum, source, message, json }) {
     throw new InvalidEventMessageError("event message is required");
   }
 
-  let jsonStr;
+  let jsonBase64;
   try {
-    jsonStr = JSON.stringify(Object.assign({ type, id }, json));
+    jsonBase64 = encodeJson(json);
   } catch (e) {
     throw new InvalidEventJsonError("event json is invalid");
   }
@@ -153,10 +154,6 @@ function dispatch({ type, uri, id, checksum, source, message, json }) {
     source: {
       DataType: "String",
       StringValue: source
-    },
-    json: {
-      DataType: "String",
-      StringValue: jsonStr
     }
   };
 
@@ -171,6 +168,13 @@ function dispatch({ type, uri, id, checksum, source, message, json }) {
     messageAttributes.id = {
       DataType: "String",
       StringValue: id
+    };
+  }
+
+  if (json) {
+    messageAttributes.json = {
+      DataType: "String",
+      StringValue: jsonBase64
     };
   }
 
@@ -245,11 +249,11 @@ function mapAttributes(data) {
     if (data.MessageAttributes[currentValue]) {
       if (currentValue === "json") {
         try {
-          accumulator[currentValue] = JSON.parse(
+          accumulator[currentValue] = decodeJson(
             data.MessageAttributes[currentValue].Value
           );
         } catch (e) {
-          throw new InvalidEventJsonError(`unable to parse json`);
+          console.log(e);
         }
       } else {
         accumulator[currentValue] = data.MessageAttributes[currentValue].Value;
