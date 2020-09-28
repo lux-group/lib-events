@@ -135,13 +135,6 @@ function dispatch({ type, uri, id, checksum, source, message, json }) {
     throw new InvalidEventMessageError("event message is required");
   }
 
-  let jsonBase64;
-  try {
-    jsonBase64 = encodeJson(json);
-  } catch (e) {
-    throw new InvalidEventJsonError("event json is invalid");
-  }
-
   const messageAttributes = {
     type: {
       DataType: "String",
@@ -172,10 +165,14 @@ function dispatch({ type, uri, id, checksum, source, message, json }) {
   }
 
   if (json) {
-    messageAttributes.json = {
-      DataType: "String",
-      StringValue: jsonBase64
-    };
+    try {
+      messageAttributes.json = {
+        DataType: "String",
+        StringValue: encodeJson(json)
+      };
+    } catch (e) {
+      throw new InvalidEventJsonError("event json is invalid");
+    }
   }
 
   const eventParams = {

@@ -11,7 +11,7 @@ function encodeJson(json) {
 
 function decodeJson(base64) {
   const buff = Buffer.from(base64, "base64");
-  const jsonStr = buff.toString(buff);
+  const jsonStr = buff.toString("utf-8");
   return JSON.parse(jsonStr);
 }
 
