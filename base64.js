@@ -1,6 +1,6 @@
 // SNS -> SQS subscription could not filter message
 // if the message contains a stringified JSON
-// use base58 to encode str instead
+// use base64 to encode str instead
 // https://stackoverflow.com/questions/59853890/sns-subscription-filter-policies-do-not-seem-to-work-when-a-binary-message-attri
 
 function encodeJson(json) {

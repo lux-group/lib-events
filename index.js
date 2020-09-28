@@ -1,5 +1,5 @@
 const AWS = require("aws-sdk");
-const { encodeJson, decodeJson } = require("./base58");
+const { encodeJson, decodeJson } = require("./base64");
 
 const sns = new AWS.SNS({
   apiVersion: "2010-03-31",
