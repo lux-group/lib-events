@@ -61,7 +61,7 @@ declare module "@luxuryescapes/lib-events" {
   const HOTEL_RESERVATION_SITEMINDER_ERROR: string;
   const HOTEL_RESERVATION_TRAVELCLICK_ERROR: string;
 
-  const RESERVATION_FX_RATE_UPDATE: string;
+  const RESERVATION_FX_RATES_UPDATE: string;
 
   const SITEMINDER_CURRENCY_ERROR: string;
 
