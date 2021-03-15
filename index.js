@@ -261,7 +261,7 @@ function mapAttributes(data) {
     return accumulator;
   };
 
-  const attributeList = ["type", "uri", "id", "checksum", "json"];
+  const attributeList = ["type", "uri", "id", "checksum", "source", "json"];
 
   return attributeList.reduce(attributeReducer, {});
 }
