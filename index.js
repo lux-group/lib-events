@@ -204,12 +204,12 @@ const sqs = new AWS.SQS({
   region: process.env.AWS_SQS_REGION
 });
 
-if (process.env.AWS_SQS_DEAD_LETTER_ARN) {
+if (process.env.AWS_SNS_DEAD_LETTER_ARN) {
   sqs.setQueueAttributes({
     QueueUrl: process.env.AWS_SQS_QUERY_URL,
     Attributes: {
       RedrivePolicy: {
-        deadLetterTargetArn: process.env.AWS_SQS_DEAD_LETTER_ARN,
+        deadLetterTargetArn: process.env.AWS_SNS_DEAD_LETTER_ARN,
         maxReceiveCount: 100
       }
     }
