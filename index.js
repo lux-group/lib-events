@@ -302,14 +302,18 @@ function pollStart(processMessage, n, t, receiveMessageParams) {
 
 function poll(
   processMessage,
-  { maxNumberOfMessages, maxIterations } = {
+  { maxNumberOfMessages, maxIterations, maxReceiveCount } = {
     maxNumberOfMessages: 10,
-    maxIterations: 10
+    maxIterations: 10,
+    maxReceiveCount: 100
   }
 ) {
   const receiveMessageParams = {
     QueueUrl: queueUrl,
-    MaxNumberOfMessages: maxNumberOfMessages
+    MaxNumberOfMessages: maxNumberOfMessages,
+    RedrivePolicy: {
+      maxReceiveCount
+    }
   };
 
   return pollStart(processMessage, maxIterations, 0, receiveMessageParams);
