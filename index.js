@@ -204,9 +204,19 @@ const sqs = new AWS.SQS({
   region: process.env.AWS_SQS_REGION
 });
 
-const queueUrl = process.env.AWS_SQS_QUERY_URL;
+if (process.env.AWS_SQS_DEAD_LETTER_URL) {
+  sqs.setQueueAttributes({
+    QueueUrl: process.env.AWS_SQS_QUERY_URL,
+    Attributes: {
+      RedrivePolicy: {
+        deadLetterTargetArn: process.env.AWS_SQS_DEAD_LETTER_URL,
+        maxReceiveCount: 100
+      }
+    }
+  });
+}
 
-function deleteMessage(message) {
+function deleteMessage(message, queueUrl) {
   return function ack() {
     return new Promise((accept, reject) => {
       sqs.deleteMessage(
@@ -266,33 +276,44 @@ function mapAttributes(data) {
   return attributeList.reduce(attributeReducer, {});
 }
 
-function receiveMessages(processMessage, data) {
+function receiveMessages(processMessage, queueUrl, data) {
   if (!data.Messages || data.Messages.length === 0) {
     return [];
   }
   return data.Messages.map(message => {
-    return processMessage(getAttributes(message.Body), deleteMessage(message));
+    return processMessage(
+      getAttributes(message.Body),
+      deleteMessage(message, queueUrl)
+    );
   });
 }
 
-function wait(processMessage, receiveMessageParams) {
+function wait(processMessage, queueUrl, receiveMessageParams) {
   return new Promise((accept, reject) => {
-    sqs.receiveMessage(receiveMessageParams, (err, data) => {
-      if (err) {
-        return reject(err);
+    sqs.receiveMessage(
+      Object.assign(
+        {
+          QueueUrl: queueUrl
+        },
+        receiveMessageParams
+      ),
+      (err, data) => {
+        if (err) {
+          return reject(err);
+        }
+        Promise.all(receiveMessages(processMessage, queueUrl, data))
+          .then(accept)
+          .catch(reject);
       }
-      Promise.all(receiveMessages(processMessage, data))
-        .then(accept)
-        .catch(reject);
-    });
+    );
   });
 }
 
-function pollStart(processMessage, n, t, receiveMessageParams) {
+function pollStart(processMessage, queueUrl, n, t, receiveMessageParams) {
   if (t >= n) {
     return Promise.resolve();
   }
-  return wait(processMessage, receiveMessageParams).then(results => {
+  return wait(processMessage, queueUrl, receiveMessageParams).then(results => {
     if (results.length == 0) {
       return Promise.resolve();
     }
@@ -302,21 +323,23 @@ function pollStart(processMessage, n, t, receiveMessageParams) {
 
 function poll(
   processMessage,
-  { maxNumberOfMessages, maxIterations, maxReceiveCount } = {
+  { maxNumberOfMessages, maxIterations, queueUrl } = {
     maxNumberOfMessages: 10,
     maxIterations: 10,
-    maxReceiveCount: 100
+    queueUrl: process.env.AWS_SQS_QUERY_URL
   }
 ) {
   const receiveMessageParams = {
-    QueueUrl: queueUrl,
-    MaxNumberOfMessages: maxNumberOfMessages,
-    RedrivePolicy: {
-      maxReceiveCount
-    }
+    MaxNumberOfMessages: maxNumberOfMessages
   };
 
-  return pollStart(processMessage, maxIterations, 0, receiveMessageParams);
+  return pollStart(
+    processMessage,
+    queueUrl,
+    maxIterations,
+    0,
+    receiveMessageParams
+  );
 }
 
 module.exports = Object.assign(
