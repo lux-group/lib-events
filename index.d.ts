@@ -57,6 +57,7 @@ declare module "@luxuryescapes/lib-events" {
   const PROPERTY_DELETE: string;
 
   const ROOM_AVAILABILITY_UPDATE: string;
+  const RATE_AVAILABILITY_UPDATE: string;
 
   const HOTEL_RESERVATION_SITEMINDER_ERROR: string;
   const HOTEL_RESERVATION_TRAVELCLICK_ERROR: string;
