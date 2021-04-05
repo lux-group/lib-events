@@ -70,4 +70,6 @@ declare module "@luxuryescapes/lib-events" {
 
   const TOUR_UPDATE: string;
   const TOUR_DELETE: string;
+
+  const GDPR_REMOVAL: string;
 }
