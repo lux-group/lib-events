@@ -63,7 +63,9 @@ const typeList = [
   "VOUCHER_UPDATE",
 
   "TOUR_UPDATE",
-  "TOUR_DELETE"
+  "TOUR_DELETE",
+
+  "GDPR_REMOVAL"
 ];
 
 const typeReducer = (accumulator, currentValue) => {
