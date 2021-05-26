@@ -48,6 +48,9 @@ const typeList = [
 
   "OFFER_UPDATE",
 
+  "RATE_PLAN_UPDATE",
+  "RATE_PLAN_DELETE",
+
   "PROPERTY_UPDATE",
   "PROPERTY_DELETE",
 

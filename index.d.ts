@@ -54,6 +54,9 @@ declare module "@luxuryescapes/lib-events" {
 
   const OFFER_UPDATE: string;
 
+  const RATE_PLAN_UPDATE: string;
+  const RATE_PLAN_DELETE: string;
+
   const PROPERTY_UPDATE: string;
   const PROPERTY_DELETE: string;
 
