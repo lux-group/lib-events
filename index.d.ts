@@ -4,9 +4,11 @@ declare module "@luxuryescapes/lib-events" {
   type Message = {
     type: string;
     source: string;
-    id: string;
-    uri: string;
+    id?: string;
+    uri?: string;
     checksum: string;
+    message: string;
+    json?: string
   };
 
   type PollingOptions = {
@@ -14,9 +16,33 @@ declare module "@luxuryescapes/lib-events" {
     maxIterations: number;
   }
 
-  function poll(processMessage: Function, options: PollingOptions): Promise<void>;
+  interface ConsumerParams {
+    accessKeyId: string;
+    secretAccessKey: string;
+    region: string;
+    queueUrl: string;
+  }
 
-  function mapAttributes(data: SNSMessage): Message;
+  interface Consumer {
+    poll: (processMessage: Function, options: PollingOptions) => Promise<void>;
+    mapAttributes: (data: SNSMessage) => Message;
+  }
+
+  function createConsumer(params: ConsumerParams): Consumer;
+
+  interface PublisherParams {
+    accessKeyId: string;
+    secretAccessKey: string;
+    region: string;
+    topic: string;
+    apiHost: string;
+  }
+
+  interface Publisher {
+    dispatch: (message: Message) => Promise<void>
+  }
+
+  function createPublisher(params: PublisherParams): Publisher
 
   const ORDER_PENDING: string;
   const ORDER_COMPLETED: string;

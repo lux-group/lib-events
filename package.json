@@ -2,11 +2,12 @@
   "name": "@luxuryescapes/lib-events",
   "version": "1.0.40",
   "main": "index.js",
+  "types": "index.d.ts",
   "scripts": {
     "test": "./node_modules/.bin/jest && yarn run lint",
     "test-watch": "./node_modules/.bin/jest --watch",
     "lint": "./node_modules/.bin/eslint index.js",
-    "lint-fix": "./node_modules/.bin/eslint --fix index.js",
+    "lint:fix": "./node_modules/.bin/eslint --fix index.js",
     "build": "echo \"no build\"",
     "prepare": "yarn run build",
     "prepublishOnly": "yarn test && yarn run lint",

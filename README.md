@@ -12,7 +12,7 @@ const { createPublisher } = require('lib-events');
 const publisher = createPublisher({
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  region: 'ap-southeast-2a',
+  region: 'ap-southeast-2',
   topic: 'my-sns-topic',
   apiHost: 'https://our-api.com'
 })
@@ -44,8 +44,8 @@ const { createConsumer } = require('lib-events');
 const consumer = createConsumer({
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  region: 'ap-southeast-2a',
-  sqsUrl: 'https://sqs.ap-southeast-2.amazonaws.com/1234/my-sqs-name'
+  region: 'ap-southeast-2',
+  queueUrl: 'https://sqs.ap-southeast-2.amazonaws.com/1234/my-sqs-name'
 })
 ```
 

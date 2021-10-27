@@ -1,7 +1,7 @@
 const assert = require('assert');
 const {
-  dispatch,
-  poll,
+  createPublisher,
+  createConsumer,
   getAttributes,
   InvalidEventTypeError,
 	InvalidEventChecksumError,
@@ -11,13 +11,28 @@ const {
   ORDERS_CHECKSUM
 } = require('./index.js');
 
+const publisher = createPublisher({
+  accessKeyId: 'key',
+  secretAccessKey: 'secret',
+  region: 'ap-southeast-2',
+  topic: 'my-sns-topic',
+  apiHost: 'https://our-api.com'
+})
+
+const consumer = createConsumer({
+  accessKeyId: 'key',
+  secretAccessKey: 'secret',
+  region: 'ap-southeast-2',
+  queueUrl: 'https://sqs.ap-southeast-2.amazonaws.com/1234/my-sqs-name'
+})
+
 it('should have queue poll fun', function() {
-  expect(poll).toBeDefined()
+  expect(consumer.poll).toBeDefined()
 });
 
 it('should throw error if invalid type', function() {
   const fun = () => {
-    dispatch({
+    publisher.dispatch({
       type: 'NA',
       uri: '/api',
       checksum: 1,
@@ -33,7 +48,7 @@ it('should throw error if invalid type', function() {
 
 it('should throw error if invalid checksum', function() {
   const fun = () => {
-    dispatch({
+    publisher.dispatch({
       type: ORDER_PENDING,
       uri: '/api',
       checksum: 'x',
@@ -49,7 +64,7 @@ it('should throw error if invalid checksum', function() {
 
 it('should throw error no source', function() {
   const fun = () => {
-    dispatch({
+    publisher.dispatch({
       type: ORDER_PENDING,
       uri: '/api',
       checksum: 1,
@@ -65,7 +80,7 @@ it('should throw error no source', function() {
 
 it('should throw error no source', function() {
   const fun = () => {
-    dispatch({
+    publisher.dispatch({
       type: ORDER_PENDING,
       uri: '/api',
       checksum: 1,
@@ -96,7 +111,7 @@ it('should pluck the message attributes', function() {
     }
   });
 
-  expect(getAttributes(body)).toEqual(attributes)
+  expect(consumer.getAttributes(body)).toEqual(attributes)
 });
 
 it('should pluck the message attributes without id', function() {
@@ -116,5 +131,5 @@ it('should pluck the message attributes without id', function() {
     }
   });
 
-  expect(getAttributes(body)).toEqual(attributes)
+  expect(consumer.getAttributes(body)).toEqual(attributes)
 });
