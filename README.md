@@ -2,12 +2,30 @@
 
 SNS messages and SQS queues helper lib
 
-## Dispatch
+## Publisher
+
+A small wrapper around SNS
 
 ```js
-const { dispatch, ORDER_CREATED } = require('lib-events');
+const { createPublisher } = require('lib-events');
 
-dispatch({
+const publisher = createPublisher({
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  region: 'ap-southeast-2',
+  topic: 'my-sns-topic',
+  apiHost: 'https://our-api.com'
+})
+```
+
+### Dispatch
+
+```js
+const { createPublisher, ORDER_CREATED } = require('lib-events');
+
+const publisher = createPublisher({ ... })
+
+publisher.dispatch({
   type: ORDER_CREATED,
   uri: `/api/orders/${order.id_orders}`,
   checksum: order.checksum,
@@ -16,10 +34,27 @@ dispatch({
 })
 ```
 
-## Poll
+## Consumers
+
+A small wrapper around SQS
 
 ```js
-const { poll, ORDER_CREATED } = require('lib-events');
+const { createConsumer } = require('lib-events');
+
+const consumer = createConsumer({
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  region: 'ap-southeast-2',
+  queueUrl: 'https://sqs.ap-southeast-2.amazonaws.com/1234/my-sqs-name'
+})
+```
+
+### Poll
+
+```js
+const { createConsumer, ORDER_CREATED } = require('lib-events');
+
+const consumer = createConsumer({ ... })
 
 async function processMessage({ type, source, id, checksum }, ack) {
   if (type === ORDER_CREATED) {
@@ -30,7 +65,7 @@ async function processMessage({ type, source, id, checksum }, ack) {
 }
 
 exports.process = async function () {
-  await poll(processMessage, {
+  await consumer.poll(processMessage, {
     maxNumberOfMessages: 10,
     maxIterations: 10
   });
