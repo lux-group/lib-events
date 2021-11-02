@@ -78,8 +78,6 @@ exports.process = async function () {
 yarn test
 ```
 
-## Release
+## Publishing
 
-```
-yarn publish
-```
+Update the version in package.json as part of your PR and CircleCI will do the rest.
