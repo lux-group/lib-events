@@ -7,6 +7,7 @@ const {
 	InvalidEventChecksumError,
 	InvalidEventSourceError,
   InvalidEventMessageError,
+  InvalidFifoMessageError,
   ORDER_PENDING,
   ORDERS_CHECKSUM
 } = require('./index.js');
@@ -16,6 +17,14 @@ const publisher = createPublisher({
   secretAccessKey: 'secret',
   region: 'ap-southeast-2',
   topic: 'my-sns-topic',
+  apiHost: 'https://our-api.com'
+})
+
+const publisherFIFO = createPublisher({
+  accessKeyId: 'key',
+  secretAccessKey: 'secret',
+  region: 'ap-southeast-2',
+  topic: 'my-sns-topic.fifo',
   apiHost: 'https://our-api.com'
 })
 
@@ -62,7 +71,7 @@ it('should throw error if invalid checksum', function() {
   expect(fun).toThrow(error)
 });
 
-it('should throw error no source', function() {
+it('should throw error if no source', function() {
   const fun = () => {
     publisher.dispatch({
       type: ORDER_PENDING,
@@ -78,7 +87,7 @@ it('should throw error no source', function() {
   expect(fun).toThrow(error)
 });
 
-it('should throw error no source', function() {
+it('should throw error if no message', function() {
   const fun = () => {
     publisher.dispatch({
       type: ORDER_PENDING,
@@ -90,6 +99,42 @@ it('should throw error no source', function() {
   }
 
   const error = new InvalidEventMessageError('event message is required');
+
+  expect(fun).toThrow(error)
+});
+
+it('should throw error if no transactionId for fifo message', function() {
+  const fun = () => {
+    publisherFIFO.dispatch({
+      type: ORDER_PENDING,
+      uri: '/api',
+      checksum: 1,
+      source: 'test',
+      message: 'test',
+      groupId: '123',
+      transactionId: null
+    })
+  }
+
+  const error = new InvalidFifoMessageError('transactionId is required for FIFO messages');
+
+  expect(fun).toThrow(error)
+});
+
+it('should throw error if no groupId for fifo message', function() {
+  const fun = () => {
+    publisherFIFO.dispatch({
+      type: ORDER_PENDING,
+      uri: '/api',
+      checksum: 1,
+      source: 'test',
+      message: 'test',
+      groupId: null,
+      transactionId: '123'
+    })
+  }
+
+  const error = new InvalidFifoMessageError('groupId is required for FIFO messages');
 
   expect(fun).toThrow(error)
 });

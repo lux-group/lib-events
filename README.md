@@ -34,6 +34,22 @@ publisher.dispatch({
 })
 ```
 
+#### Publishing to a fifo queue
+
+```js
+const publisher = createPublisher({ ..., topic: 'arn:aws:sns:ap-southeast-2:1234:my-fifo-topic.fifo' })
+
+publisher.dispatch({
+  type: ORDER_CREATED,
+  uri: `/api/orders/${order.id_orders}`,
+  checksum: order.checksum,
+  source: process.env.HEROKU_APP_NAME,
+  message: `${user.fullname} just purchased ${order.offer.name}`,
+  transactionId: '123456', // this is used for deduplication, required for fifo queues
+  groupId: '123'// this is used for partitioning, required for fifo queues
+})
+```
+
 ## Consumers
 
 A small wrapper around SQS

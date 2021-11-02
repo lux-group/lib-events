@@ -62,7 +62,11 @@ const typeList = [
   "TOUR_UPDATE",
   "TOUR_DELETE",
 
-  "GDPR_REMOVAL"
+  "GDPR_REMOVAL",
+
+  "ARI_RATES_UPDATE",
+  "ARI_INVENTORY_UPDATE",
+  "ARI_AVAILABILITY_UPDATE"
 ];
 
 const typeReducer = (accumulator, currentValue) => {
@@ -120,6 +124,14 @@ class InvalidEventSizeError extends Error {
   }
 }
 
+class InvalidFifoMessageError extends Error {
+  constructor(message, status) {
+    super(message);
+    this.name = this.constructor.name;
+    Error.captureStackTrace(this, this.constructor);
+  }
+}
+
 function createPublisher({
   accessKeyId,
   secretAccessKey,
@@ -133,7 +145,19 @@ function createPublisher({
     secretAccessKey,
     region
   });
-  function dispatch({ type, uri, id, checksum, source, message, json }) {
+  const isFIFO = topic.endsWith(".fifo");
+
+  function dispatch({
+    type,
+    uri,
+    id,
+    checksum,
+    source,
+    message,
+    json,
+    groupId,
+    transactionId
+  }) {
     if (!types[type]) {
       throw new InvalidEventTypeError(`invalid event type '${type}'`);
     }
@@ -148,6 +172,18 @@ function createPublisher({
 
     if (!message) {
       throw new InvalidEventMessageError("event message is required");
+    }
+
+    if (isFIFO && !groupId) {
+      throw new InvalidFifoMessageError(
+        "groupId is required for FIFO messages"
+      );
+    }
+
+    if (isFIFO && !transactionId) {
+      throw new InvalidFifoMessageError(
+        "transactionId is required for FIFO messages"
+      );
     }
 
     const messageAttributes = {
@@ -201,6 +237,14 @@ function createPublisher({
       MAX_EVENT_MESSAGE_SIZE
     ) {
       throw new InvalidEventSizeError("json message exceeded limit of 256KB");
+    }
+
+    if (groupId) {
+      eventParams.MessageGroupId = groupId;
+    }
+
+    if (transactionId) {
+      eventParams.MessageDeduplicationId = transactionId;
     }
 
     if (process.env.IGNORE_EVENTS == "true") {
@@ -349,7 +393,8 @@ module.exports = Object.assign(
     InvalidEventTypeError,
     InvalidEventChecksumError,
     InvalidEventSourceError,
-    InvalidEventMessageError
+    InvalidEventMessageError,
+    InvalidFifoMessageError
   },
   types
 );
