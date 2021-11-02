@@ -13,7 +13,7 @@ const publisher = createPublisher({
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
   region: 'ap-southeast-2',
-  topic: 'my-sns-topic',
+  topic: 'arn:aws:sns:ap-southeast-2:1234:my-sns-topic',
   apiHost: 'https://our-api.com'
 })
 ```
