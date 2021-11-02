@@ -124,7 +124,7 @@ class InvalidEventSizeError extends Error {
   }
 }
 
-class InvalidFifoMessageError extends Error {
+class InvalidFIFOMessageError extends Error {
   constructor(message, status) {
     super(message);
     this.name = this.constructor.name;
@@ -175,13 +175,13 @@ function createPublisher({
     }
 
     if (isFIFO && !groupId) {
-      throw new InvalidFifoMessageError(
+      throw new InvalidFIFOMessageError(
         "groupId is required for FIFO messages"
       );
     }
 
     if (isFIFO && !transactionId) {
-      throw new InvalidFifoMessageError(
+      throw new InvalidFIFOMessageError(
         "transactionId is required for FIFO messages"
       );
     }
@@ -394,7 +394,7 @@ module.exports = Object.assign(
     InvalidEventChecksumError,
     InvalidEventSourceError,
     InvalidEventMessageError,
-    InvalidFifoMessageError
+    InvalidFIFOMessageError
   },
   types
 );

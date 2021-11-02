@@ -7,7 +7,7 @@ const {
 	InvalidEventChecksumError,
 	InvalidEventSourceError,
   InvalidEventMessageError,
-  InvalidFifoMessageError,
+  InvalidFIFOMessageError,
   ORDER_PENDING,
   ORDERS_CHECKSUM
 } = require('./index.js');
@@ -116,7 +116,7 @@ it('should throw error if no transactionId for fifo message', function() {
     })
   }
 
-  const error = new InvalidFifoMessageError('transactionId is required for FIFO messages');
+  const error = new InvalidFIFOMessageError('transactionId is required for FIFO messages');
 
   expect(fun).toThrow(error)
 });
@@ -134,7 +134,7 @@ it('should throw error if no groupId for fifo message', function() {
     })
   }
 
-  const error = new InvalidFifoMessageError('groupId is required for FIFO messages');
+  const error = new InvalidFIFOMessageError('groupId is required for FIFO messages');
 
   expect(fun).toThrow(error)
 });
