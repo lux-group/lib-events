@@ -8,7 +8,9 @@ declare module "@luxuryescapes/lib-events" {
     uri?: string;
     checksum: string;
     message: string;
-    json?: string
+    json?: string;
+    transactionId?: string
+    groupId?: string
   };
 
   type PollingOptions = {
@@ -102,4 +104,8 @@ declare module "@luxuryescapes/lib-events" {
   const TOUR_DELETE: string;
 
   const GDPR_REMOVAL: string;
+
+  const ARI_RATES_UPDATE: string;
+  const ARI_INVENTORY_UPDATE: string;
+  const ARI_AVAILABILITY_UPDATE: string;
 }
