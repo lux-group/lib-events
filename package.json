@@ -17,7 +17,7 @@
   "license": "UNLICENSED",
   "dependencies": {
     "@types/aws-lambda": "^8.10.40",
-    "aws-sdk": "^2.200.0"
+    "aws-sdk": "^2.814.0"
   },
   "devDependencies": {
     "eslint": "^4.1.1",
