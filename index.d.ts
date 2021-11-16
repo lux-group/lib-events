@@ -6,7 +6,7 @@ declare module "@luxuryescapes/lib-events" {
     source: string;
     id?: string;
     uri?: string;
-    checksum: string;
+    checksum: number;
     message: string;
     json?: string;
     transactionId?: string
