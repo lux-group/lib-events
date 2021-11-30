@@ -1,7 +1,7 @@
 import { SNSMessage } from "aws-lambda";
 
 declare module "@luxuryescapes/lib-events" {
-  type Message<T extends any> = {
+  type Message<T = any> = {
     type: string;
     source: string;
     id?: string;
