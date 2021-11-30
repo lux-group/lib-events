@@ -66,7 +66,10 @@ const typeList = [
 
   "ARI_RATES_UPDATE",
   "ARI_INVENTORY_UPDATE",
-  "ARI_AVAILABILITY_UPDATE"
+  "ARI_AVAILABILITY_UPDATE",
+
+  "BEDBANK_PROPERTY_FLIGHT_UPDATE",
+  "BEDBANK_SYNC"
 ];
 
 const typeReducer = (accumulator, currentValue) => {

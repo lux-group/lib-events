@@ -108,4 +108,7 @@ declare module "@luxuryescapes/lib-events" {
   const ARI_RATES_UPDATE: string;
   const ARI_INVENTORY_UPDATE: string;
   const ARI_AVAILABILITY_UPDATE: string;
+
+  const BEDBANK_PROPERTY_FLIGHT_UPDATE: string;
+  const BEDBANK_SYNC: string;
 }
