@@ -69,7 +69,9 @@ const typeList = [
   "ARI_AVAILABILITY_UPDATE",
 
   "BEDBANK_PROPERTY_FLIGHT_UPDATE",
-  "BEDBANK_SYNC"
+  "BEDBANK_SYNC",
+
+  "RATE_PLANS_GROUPS_UPDATE"
 ];
 
 const typeReducer = (accumulator, currentValue) => {
