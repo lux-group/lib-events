@@ -81,6 +81,10 @@ declare module "@luxuryescapes/lib-events" {
   const ORDER_FLIGHT_ITEM_CANCELLED: string;
 
   const OFFER_UPDATE: string;
+  // if the offer is approve it is published
+  // if it's not deleted
+  // based on schedule alone
+  const PUBLIC_OFFER_UPDATE: string;
 
   const RATE_PLAN_UPDATE: string;
   const RATE_PLAN_DELETE: string;
