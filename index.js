@@ -145,7 +145,6 @@ function createPublisher({
   topic,
   apiHost
 }) {
-
   const credentials = {
     apiVersion: "2010-03-31",
     accessKeyId,
