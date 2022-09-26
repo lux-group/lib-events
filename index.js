@@ -140,16 +140,23 @@ class InvalidFIFOMessageError extends Error {
 function createPublisher({
   accessKeyId,
   secretAccessKey,
+  sessionToken,
   region,
   topic,
   apiHost
 }) {
-  const sns = new AWS.SNS({
+  const credentials = {
     apiVersion: "2010-03-31",
     accessKeyId,
     secretAccessKey,
     region
-  });
+  };
+
+  if (sessionToken) {
+    credentials.sessionToken = sessionToken;
+  }
+
+  const sns = new AWS.SNS(credentials);
   const isFIFO = topic.endsWith(".fifo");
 
   function dispatch({

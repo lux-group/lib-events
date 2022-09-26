@@ -35,6 +35,7 @@ declare module "@luxuryescapes/lib-events" {
   interface PublisherParams {
     accessKeyId: string;
     secretAccessKey: string;
+    sessionToken?: string;
     region: string;
     topic: string;
     apiHost: string;
