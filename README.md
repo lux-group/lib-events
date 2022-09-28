@@ -18,6 +18,22 @@ const publisher = createPublisher({
 })
 ```
 
+If you are assuming an IAM role you can pass the `sessionToken` parameter:
+
+```js
+const role = getRoleCredentials();
+
+const publisher = createPublisher({
+  accessKeyId: role.Credentials.AccessKeyId,
+  secretAccessKey: role.Credentials.SecretAccessKey,
+  sessionToken: role.Credentials.SessionToken,
+  region: 'ap-southeast-2',
+  topic: 'arn:aws:sns:ap-southeast-2:1234:my-sns-topic',
+  apiHost: 'https://our-api.com'
+})
+```
+
+
 ### Dispatch
 
 ```js
