@@ -71,7 +71,9 @@ const typeList = [
   "BEDBANK_PROPERTY_FLIGHT_UPDATE",
   "BEDBANK_SYNC",
 
-  "CRUISE_SYNC"
+  "CRUISE_SYNC",
+
+  "USER_SIGN_UP"
 ];
 
 const typeReducer = (accumulator, currentValue) => {
