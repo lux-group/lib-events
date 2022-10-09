@@ -62,6 +62,8 @@ const typeList = [
   "TOUR_UPDATE",
   "TOUR_DELETE",
 
+  "CONN_SF_TOUR_UPDATE",
+
   "GDPR_REMOVAL",
 
   "ARI_RATES_UPDATE",
