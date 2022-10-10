@@ -274,13 +274,24 @@ function createPublisher({
   };
 }
 
-function createConsumer({ accessKeyId, secretAccessKey, region, queueUrl }) {
-  const sqs = new AWS.SQS({
+function createConsumer({
+  accessKeyId,
+  secretAccessKey,
+  sessionToken,
+  region,
+  queueUrl
+}) {
+  const credentials = {
     apiVersion: "2012-11-05",
     accessKeyId,
     secretAccessKey,
     region
-  });
+  };
+
+  if (sessionToken) {
+    credentials.sessionToken = sessionToken;
+  }
+  const sqs = new AWS.SQS(credentials);
 
   function deleteMessage(message) {
     return function ack() {
