@@ -281,13 +281,17 @@ function createConsumer({
   region,
   queueUrl
 }) {
-  const sqs = new AWS.SQS({
+  const credentials = {
     apiVersion: "2012-11-05",
     accessKeyId,
     secretAccessKey,
-    sessionToken,
     region
-  });
+  };
+
+  if (sessionToken) {
+    credentials.sessionToken = sessionToken;
+  }
+  const sqs = new AWS.SQS(credentials);
 
   function deleteMessage(message) {
     return function ack() {
