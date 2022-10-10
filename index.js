@@ -274,7 +274,13 @@ function createPublisher({
   };
 }
 
-function createConsumer({ accessKeyId, secretAccessKey, sessionToken, region, queueUrl }) {
+function createConsumer({
+  accessKeyId,
+  secretAccessKey,
+  sessionToken,
+  region,
+  queueUrl
+}) {
   const sqs = new AWS.SQS({
     apiVersion: "2012-11-05",
     accessKeyId,
