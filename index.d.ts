@@ -21,6 +21,7 @@ declare module "@luxuryescapes/lib-events" {
   interface ConsumerParams {
     accessKeyId: string;
     secretAccessKey: string;
+    sessionToken: string;
     region: string;
     queueUrl: string;
   }
