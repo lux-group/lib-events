@@ -1,6 +1,6 @@
 {
   "name": "@luxuryescapes/lib-events",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "main": "index.js",
   "types": "index.d.ts",
   "scripts": {
