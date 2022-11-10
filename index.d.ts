@@ -115,6 +115,7 @@ declare module "@luxuryescapes/lib-events" {
 
   const BEDBANK_PROPERTY_FLIGHT_UPDATE: string;
   const BEDBANK_SYNC: string;
+  const BEDBANK_UPDATE: string;
 
   const CRUISE_SYNC: string;
 

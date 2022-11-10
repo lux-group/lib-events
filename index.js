@@ -72,6 +72,7 @@ const typeList = [
 
   "BEDBANK_PROPERTY_FLIGHT_UPDATE",
   "BEDBANK_SYNC",
+  "BEDBANK_UPDATE",
 
   "CRUISE_SYNC",
 
