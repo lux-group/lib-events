@@ -102,6 +102,7 @@ declare module "@luxuryescapes/lib-events" {
 
   const VOUCHER_UPDATE: string;
 
+  const TOUR_OFFER_UPDATE: string;
   const TOUR_UPDATE: string;
   const TOUR_DELETE: string;
 
@@ -119,5 +120,5 @@ declare module "@luxuryescapes/lib-events" {
 
   const CRUISE_SYNC: string;
 
-  const USER_SIGN_UP : string;
+  const USER_SIGN_UP: string;
 }

@@ -59,6 +59,7 @@ const typeList = [
 
   "VOUCHER_UPDATE",
 
+  "TOUR_OFFER_UPDATE",
   "TOUR_UPDATE",
   "TOUR_DELETE",
 
