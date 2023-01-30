@@ -90,6 +90,8 @@ declare module "@luxuryescapes/lib-events" {
   const PROPERTY_UPDATE: string;
   const PROPERTY_DELETE: string;
 
+  const PROPERTY_RATING_UPDATE: string;
+
   const ROOM_AVAILABILITY_UPDATE: string;
   const RATE_AVAILABILITY_UPDATE: string;
 
