@@ -121,6 +121,7 @@ declare module "@luxuryescapes/lib-events" {
   const BEDBANK_UPDATE: string;
 
   const CRUISE_SYNC: string;
+  const CRUISE_UPDATE: string;
 
   const USER_SIGN_UP: string;
 }

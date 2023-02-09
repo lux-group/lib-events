@@ -78,6 +78,7 @@ const typeList = [
   "BEDBANK_UPDATE",
 
   "CRUISE_SYNC",
+  "CRUISE_UPDATE",
 
   "USER_SIGN_UP"
 ];
