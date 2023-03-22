@@ -1,13 +1,16 @@
 # lib-events
 
-SNS messages and SQS queues helper lib
+`lib-events` is a helper to dispatch events using [AWS SNS](https://docs.aws.amazon.com/sns/latest/dg/welcome.html) and to listen to these events using [AWS SQS](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/welcome.html).
 
-## Publisher
+For a complete guide on how to set it up, please refer to: [Publishing and Consuming events](https://aussiecommerce.atlassian.net/wiki/spaces/TEC/pages/1799487497/Publishing+and+Consuming+events).
 
-A small wrapper around SNS
+## Creating the Publisher
+
+The way we "dispatch" an event is by publishing it to Amazon SNS.<br />
+First of all, you need to create a publisher, it will be your connection to SNS:
 
 ```js
-const { createPublisher } = require('lib-events');
+import { createPublisher } from 'lib-events';
 
 const publisher = createPublisher({
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
@@ -18,7 +21,11 @@ const publisher = createPublisher({
 })
 ```
 
-If you are assuming an IAM role you can pass the `sessionToken` parameter:
+The `createPublisher` method allows you to pass one more parameter called `sessionToken`, you have to inform it if you are running it in dev or if you are assuming an IAM role.
+
+To get temporary `accessKeyId`, `secretAccessKey` and `sessionToken` for your account (recommended), follow this guide: [Authenticate access using MFA through the AWS CLI](https://aws.amazon.com/premiumsupport/knowledge-center/authenticate-mfa-cli/).
+
+Below is an example using an IAM role:
 
 ```js
 const role = getRoleCredentials();
@@ -33,11 +40,12 @@ const publisher = createPublisher({
 })
 ```
 
+## Dispatching Events
 
-### Dispatch
+Now that you created the publisher, you can use its instance to dispatch events:
 
 ```js
-const { createPublisher, ORDER_CREATED } = require('lib-events');
+import { createPublisher, ORDER_CREATED } from 'lib-events';
 
 const publisher = createPublisher({ ... })
 
@@ -50,10 +58,13 @@ publisher.dispatch({
 })
 ```
 
-#### Publishing to a fifo queue
+### Publishing to a fifo queue
 
 ```js
-const publisher = createPublisher({ ..., topic: 'arn:aws:sns:ap-southeast-2:1234:my-fifo-topic.fifo' })
+const publisher = createPublisher({
+  ...,
+  topic: 'arn:aws:sns:ap-southeast-2:1234:my-fifo-topic.fifo'
+})
 
 publisher.dispatch({
   type: ORDER_CREATED,
@@ -66,12 +77,13 @@ publisher.dispatch({
 })
 ```
 
-## Consumers
+## Creating the Consumer
 
-A small wrapper around SQS
+We "listen" to events by consuming an Amazon SQS queue.<br />
+To do that, create a consumer:
 
 ```js
-const { createConsumer } = require('lib-events');
+import { createConsumer } from 'lib-events';
 
 const consumer = createConsumer({
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
@@ -81,23 +93,32 @@ const consumer = createConsumer({
 })
 ```
 
-### Poll
+As in [Creating the Publisher](#creating-the-publisher), you might need to inform `sessionToken` depending on your account type.
+
+## Listening to Events
+
+With the consumer instance, you can now listen to the SQS events.<br />
+The common way to do that, is by running a worker process to constantly poll for messages in the consumer and process them accordingly:
 
 ```js
-const { createConsumer, ORDER_CREATED } = require('lib-events');
+import { createConsumer, ORDER_CREATED } from 'lib-events';
 
 const consumer = createConsumer({ ... })
 
-async function processMessage({ type, source, id, checksum }, ack) {
-  if (type === ORDER_CREATED) {
-    console.log(`${source} created an order!`);
+async function processMessages({ type, source, id, checksum }, ack) {
+  switch (type) {
+    case (ORDER_CREATED):
+      console.log(`${source} created an order!`);
+      break;
+    default:
+      break;
   }
 
   await ack()
 }
 
 exports.process = async function () {
-  await consumer.poll(processMessage, {
+  await consumer.poll(processMessages, {
     maxNumberOfMessages: 10,
     maxIterations: 10
   });
