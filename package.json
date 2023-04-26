@@ -20,8 +20,8 @@
     "aws-sdk": "^2.1365.0"
   },
   "devDependencies": {
-    "eslint": "^4.19.1",
-    "eslint-config-prettier": "^2.10.0",
+    "eslint": "^8.39.0",
+    "eslint-config-prettier": "^8.8.0",
     "eslint-plugin-import": "^2.27.5",
     "eslint-plugin-jest": "^20.0.3",
     "eslint-plugin-prettier": "^2.7.0",
