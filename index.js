@@ -80,7 +80,7 @@ const typeList = [
   "CRUISE_SYNC",
   "CRUISE_UPDATE",
 
-  "USER_SIGN_UP"
+  "USER_SIGN_UP",
 ];
 
 const typeReducer = (accumulator, currentValue) => {
@@ -152,13 +152,13 @@ function createPublisher({
   sessionToken,
   region,
   topic,
-  apiHost
+  apiHost,
 }) {
   const credentials = {
     apiVersion: "2010-03-31",
     accessKeyId,
     secretAccessKey,
-    region
+    region,
   };
 
   if (sessionToken) {
@@ -177,7 +177,7 @@ function createPublisher({
     message,
     json,
     groupId,
-    transactionId
+    transactionId,
   }) {
     if (!types[type]) {
       throw new InvalidEventTypeError(`invalid event type '${type}'`);
@@ -210,29 +210,29 @@ function createPublisher({
     const messageAttributes = {
       type: {
         DataType: "String",
-        StringValue: type
+        StringValue: type,
       },
       checksum: {
         DataType: "Number",
-        StringValue: checksum.toString()
+        StringValue: checksum.toString(),
       },
       source: {
         DataType: "String",
-        StringValue: source
-      }
+        StringValue: source,
+      },
     };
 
     if (uri) {
       messageAttributes.uri = {
         DataType: "String",
-        StringValue: `${apiHost}${uri}`
+        StringValue: `${apiHost}${uri}`,
       };
     }
 
     if (id) {
       messageAttributes.id = {
         DataType: "String",
-        StringValue: id
+        StringValue: id,
       };
     }
 
@@ -240,7 +240,7 @@ function createPublisher({
       try {
         messageAttributes.json = {
           DataType: "String",
-          StringValue: encodeJson(json)
+          StringValue: encodeJson(json),
         };
       } catch (e) {
         throw new InvalidEventJsonError("event json is invalid");
@@ -250,7 +250,7 @@ function createPublisher({
     const eventParams = {
       MessageAttributes: messageAttributes,
       TopicArn: topic,
-      Message: message
+      Message: message,
     };
 
     if (
@@ -275,7 +275,7 @@ function createPublisher({
     return sns.publish(eventParams).promise();
   }
   return {
-    dispatch
+    dispatch,
   };
 }
 
@@ -284,13 +284,13 @@ function createConsumer({
   secretAccessKey,
   sessionToken,
   region,
-  queueUrl
+  queueUrl,
 }) {
   const credentials = {
     apiVersion: "2012-11-05",
     accessKeyId,
     secretAccessKey,
-    region
+    region,
   };
 
   if (sessionToken) {
@@ -304,7 +304,7 @@ function createConsumer({
         sqs.deleteMessage(
           {
             QueueUrl: queueUrl,
-            ReceiptHandle: message.ReceiptHandle
+            ReceiptHandle: message.ReceiptHandle,
           },
           (err, response) => {
             if (err) {
@@ -312,7 +312,7 @@ function createConsumer({
             }
             return accept({
               response,
-              message
+              message,
             });
           }
         );
@@ -363,7 +363,7 @@ function createConsumer({
     if (!data.Messages || data.Messages.length === 0) {
       return [];
     }
-    return data.Messages.map(message => {
+    return data.Messages.map((message) => {
       return processMessage(
         getAttributes(message.Body),
         deleteMessage(message)
@@ -388,7 +388,7 @@ function createConsumer({
     if (t >= n) {
       return Promise.resolve();
     }
-    return wait(processMessage, receiveMessageParams).then(results => {
+    return wait(processMessage, receiveMessageParams).then((results) => {
       if (results.length == 0) {
         return Promise.resolve();
       }
@@ -400,12 +400,12 @@ function createConsumer({
     processMessage,
     { maxNumberOfMessages, maxIterations } = {
       maxNumberOfMessages: 10,
-      maxIterations: 10
+      maxIterations: 10,
     }
   ) {
     const receiveMessageParams = {
       QueueUrl: queueUrl,
-      MaxNumberOfMessages: maxNumberOfMessages
+      MaxNumberOfMessages: maxNumberOfMessages,
     };
 
     return pollStart(processMessage, maxIterations, 0, receiveMessageParams);
@@ -414,7 +414,7 @@ function createConsumer({
   return {
     poll,
     getAttributes,
-    mapAttributes
+    mapAttributes,
   };
 }
 
@@ -426,7 +426,7 @@ module.exports = Object.assign(
     InvalidEventChecksumError,
     InvalidEventSourceError,
     InvalidEventMessageError,
-    InvalidFIFOMessageError
+    InvalidFIFOMessageError,
   },
   types
 );
