@@ -16,16 +16,16 @@
   },
   "license": "UNLICENSED",
   "dependencies": {
-    "@types/aws-lambda": "^8.10.40",
-    "aws-sdk": "^2.814.0"
+    "@types/aws-lambda": "^8.10.114",
+    "aws-sdk": "^2.1365.0"
   },
   "devDependencies": {
-    "eslint": "^4.1.1",
-    "eslint-config-prettier": "^2.9.0",
-    "eslint-plugin-import": "^2.2.0",
+    "eslint": "^4.19.1",
+    "eslint-config-prettier": "^2.10.0",
+    "eslint-plugin-import": "^2.27.5",
     "eslint-plugin-jest": "^20.0.3",
-    "eslint-plugin-prettier": "^2.3.1",
+    "eslint-plugin-prettier": "^2.7.0",
     "jest": "^20.0.4",
-    "prettier": "^1.8.2"
+    "prettier": "^1.19.1"
   }
 }
