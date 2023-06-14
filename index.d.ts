@@ -97,6 +97,7 @@ declare module "@luxuryescapes/lib-events" {
   
   const ROOM_AVAILABILITY_UPDATE: string;
   const RATE_AVAILABILITY_UPDATE: string;
+  const BEDBANK_PROPERTY_RATING_UPDATE: string;
 
   const HOTEL_RESERVATION_SITEMINDER_ERROR: string;
   const HOTEL_RESERVATION_TRAVELCLICK_ERROR: string;
