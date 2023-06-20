@@ -128,4 +128,6 @@ declare module "@luxuryescapes/lib-events" {
   const CRUISE_UPDATE: string;
 
   const USER_SIGN_UP: string;
+
+  const CAR_HIRE_LOCATION_SYNC: string;
 }
