@@ -85,6 +85,8 @@ const typeList = [
   "CRUISE_UPDATE",
 
   "USER_SIGN_UP",
+
+  "CAR_HIRE_LOCATION_SYNC",
 ];
 
 const typeReducer = (accumulator, currentValue) => {
