@@ -41,6 +41,8 @@ const typeList = [
 
   "OFFER_UPDATE",
 
+  "PUBLIC_OFFER_LOWEST_PRICE_UPDATE",
+
   "RATE_PLAN_UPDATE",
   "RATE_PLAN_DELETE",
 
