@@ -83,6 +83,7 @@ declare module "@luxuryescapes/lib-events" {
   const ORDER_FLIGHT_ITEM_CANCELLED: string;
 
   const OFFER_UPDATE: string;
+  const OFFER_LOWEST_PRICE_UPDATE: string;
 
   const RATE_PLAN_UPDATE: string;
   const RATE_PLAN_DELETE: string;
