@@ -1,3 +1,24 @@
 {
-  "extends": ["github>lux-group/renovate-config"]
+  "rangeStrategy": "pin",
+  "masterIssue": true,
+  "prConcurrentLimit": 3,
+  "separateMultipleMajor": true,
+  "packageRules": [
+    {
+      "groupName": "Node",
+      "matchPackageNames": ["cimg/node", "node"]
+    },
+    {
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "automerge": true
+    },
+    {
+      "matchDepTypes": ["devDependencies"],
+      "automerge": true
+    }
+  ],
+  "encrypted": {
+    "npmToken": "Czm9s6BybGKqNcrQVk9ay3c1PglTDziVNIrYKfxk1BUhTvQgeOZMJCF6wcqwKsVNr2q0FJZfWe65tUfPw2H1nDEgTuBNkIBCFceFB2OC8tq2cv3kRpccOUByJ4BF36N2/bpNPTeTjw+ThKKdYK11KrpeqXEVHzaQeH8SrY28iLRDsfz8xD4U7mb+7L1Ksy7auHUKxmuYkiZxm2110vg4nRkumeGhE37tI1oE5kJq7HgT6q2EbNWe9QNjQfK/wdaEayuZlhe4OVsJ3+/CNZgT40XmE4vAINnlfJHpXSDt7T2HP0MhnWUE1laH+4Y9cfnigYSiuhYTLtViLxx81Jx3+g=="
+  },
+  "npmrc": "//registry.npmjs.org/:_authToken=${NPM_TOKEN}"
 }
