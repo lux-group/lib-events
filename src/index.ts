@@ -28,6 +28,7 @@ interface Consumer {
   poll: (processMessage: ProcessMessage, param?: { maxNumberOfMessages: number, maxIterations: number }) => Promise<void>;
   getAttributes: (json: string) => Message
   mapAttributes: (data: {
+    Message: string,
     MessageAttributes: { [key: string]: { Value: string } }
   }) => Message
 }
@@ -418,7 +419,7 @@ export function createConsumer({
       return bodyJson.Records[0];
     }
 
-    else if (bodyJson.MessageAttributes) {
+    if (bodyJson.MessageAttributes) {
       // handle sns message
       return mapAttributes(bodyJson);
     }
@@ -432,12 +433,12 @@ export function createConsumer({
     }
   }
 
-  function mapAttributes(data: { MessageAttributes: { [key: string]: { Value: string } } }): Message {
+  function mapAttributes(data: { Message: string, MessageAttributes: { [key: string]: { Value: string } } }): Message {
     const message: Message = {
       type: data.MessageAttributes.type.Value,
       source: data.MessageAttributes.source.Value,
       checksum: Number(data.MessageAttributes.checksum.Value),
-      message: data.MessageAttributes.message.Value
+      message: data.Message,
     }
 
     if (data.MessageAttributes.id) {
@@ -525,8 +526,8 @@ export function createConsumer({
     poll: (processMessage: ProcessMessage, params?: PollParams) => (
       poll(
         processMessage,
-        0,
         params?.maxIterations ?? 10,
+        0,
         { QueueUrl: queueUrl, MaxNumberOfMessages: params?.maxNumberOfMessages ?? 10 }
       )
     ),
