@@ -427,12 +427,12 @@ export function createConsumer({
     }
 
     // do nothing if the message type it not what we need
-      return {
-        type: "",
-        source: "",
-        checksum: 0,
-        message: ""
-      }
+    return {
+      type: "",
+      source: "",
+      checksum: 0,
+      message: ""
+    }
   }
 
   function mapAttributes(data: { MessageAttributes: { [key: string]: { Value: string } } }): Message {
