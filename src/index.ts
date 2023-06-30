@@ -2,7 +2,7 @@ import AWS from "aws-sdk";
 
 import { encodeJson, decodeJson } from "./base64";
 
-type Message<T = undefined> = {
+export type Message<T = undefined> = {
   type: string;
   source: string;
   id?: string;
@@ -25,7 +25,7 @@ interface ConsumerParams {
 type ProcessMessage = (getAttributes: (body: string) => Message, deleteMessage: (message: Message) => void) => Message
 
 interface Consumer {
-  poll: (processMessage: ProcessMessage, maxNumberOfMessagesm: number, maxIterations: number, iterations: number) => Promise<void>;
+  poll: (processMessage: ProcessMessage, param?: { maxNumberOfMessages: number, maxIterations: number }) => Promise<void>;
   getAttributes: (json: string) => Message
   mapAttributes: (data: {
     MessageAttributes: { [key: string]: { Value: string } }
@@ -70,6 +70,11 @@ interface Credentials {
   secretAccessKey: string;
   region: string;
   sessionToken?: string;
+}
+
+interface PollParams {
+  maxNumberOfMessages?: number
+  maxIterations?: number
 }
 
 // Amazon SNS currently allows a maximum size of 256 KB for published messages.
@@ -478,8 +483,6 @@ export function createConsumer({
 
   function pollStart(
     processMessage: ProcessMessage,
-    maxNumberOfMessages: number,
-    maxIterations: number,
     n: number,
     t: number,
     receiveMessageParams: ReceiveMessageParams
@@ -491,26 +494,18 @@ export function createConsumer({
       if (results.length == 0) {
         return Promise.resolve();
       }
-      return poll(processMessage, n, t + 1);
+      return poll(processMessage, n, t + 1, receiveMessageParams);
     });
   }
 
   function poll(
     processMessage: ProcessMessage,
-    maxNumberOfMessages = 10,
-    maxIterations = 10,
-    n = 0,
-    t = 0,
+    n: number,
+    t: number,
+    receiveMessageParams: ReceiveMessageParams
   ): Promise<void> {
-    const receiveMessageParams: ReceiveMessageParams = {
-      QueueUrl: queueUrl,
-      MaxNumberOfMessages: maxNumberOfMessages,
-    };
-
     return pollStart(
       processMessage,
-      maxNumberOfMessages,
-      maxIterations,
       n,
       t,
       receiveMessageParams
@@ -518,7 +513,14 @@ export function createConsumer({
   }
 
   return {
-    poll,
+    poll: (processMessage: ProcessMessage, params?: PollParams) => (
+      poll(
+        processMessage,
+        0,
+        params?.maxIterations ?? 10,
+        { QueueUrl: queueUrl, MaxNumberOfMessages: params?.maxNumberOfMessages ?? 10 }
+      )
+    ),
     getAttributes,
     mapAttributes,
   };
