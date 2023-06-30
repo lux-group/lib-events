@@ -22,7 +22,7 @@ interface ConsumerParams {
   queueUrl: string;
 }
 
-type ProcessMessage = (getAttributes: (body: string) => Message, deleteMessage: (message: Message) => void) => Message
+type ProcessMessage = (message: Message, ack: () => Promise<unknown>) => Promise<void>
 
 interface Consumer {
   poll: (processMessage: ProcessMessage, param?: { maxNumberOfMessages: number, maxIterations: number }) => Promise<void>;
@@ -375,7 +375,7 @@ export function createConsumer({
   }
   const sqs = new AWS.SQS(credentials);
 
-  function deleteMessage(message: AWS.SQS.Types.Message) {
+  function deleteMessage(message: AWS.SQS.Types.Message): () => Promise<{ response: Record<string, never>, message: AWS.SQS.Message }> {
     return function ack() {
       return new Promise((accept, reject) => {
         if (!message.ReceiptHandle) {
@@ -403,9 +403,14 @@ export function createConsumer({
     };
   }
 
-  function getAttributes(body: AWS.SQS.Types.Message['Body']) {
+  function getAttributes(body: AWS.SQS.Types.Message['Body']): Message {
     if (!body) {
-      return {}
+      return {
+        type: "",
+        source: "",
+        checksum: 0,
+        message: ""
+      }
     }
 
     const bodyJson = JSON.parse(body);
@@ -422,7 +427,12 @@ export function createConsumer({
     }
 
     // do nothing if the message type it not what we need
-    return {};
+      return {
+        type: "",
+        source: "",
+        checksum: 0,
+        message: ""
+      }
   }
 
   function mapAttributes(data: { MessageAttributes: { [key: string]: { Value: string } } }): Message {
@@ -456,15 +466,17 @@ export function createConsumer({
     return message
   }
 
-  function receiveMessages(processMessage: ProcessMessage, data: AWS.SQS.Types.ReceiveMessageResult): Message[] {
+  function receiveMessages(processMessage: ProcessMessage, data: AWS.SQS.Types.ReceiveMessageResult): Promise<Message>[] {
     if (!data.Messages || data.Messages.length === 0) {
       return [];
     }
-    return data.Messages.map((message: AWS.SQS.Types.Message) => {
+    return data.Messages.map((message: AWS.SQS.Types.Message): Promise<Message> => {
+      const attributes = getAttributes(message.Body)
+
       return processMessage(
-        getAttributes(message.Body),
+        attributes,
         deleteMessage(message)
-      );
+      ).then(() => attributes);
     });
   }
 
