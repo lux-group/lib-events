@@ -45,12 +45,12 @@ const publisher = createPublisher({
 Now that you created the publisher, you can use its instance to dispatch events:
 
 ```js
-import { createPublisher, ORDER_CREATED } from 'lib-events';
+import { createPublisher, Events } from 'lib-events';
 
 const publisher = createPublisher({ ... })
 
 publisher.dispatch({
-  type: ORDER_CREATED,
+  type: Events.ORDER_CREATED,
   uri: `/api/orders/${order.id_orders}`,
   checksum: order.checksum,
   source: process.env.HEROKU_APP_NAME,
@@ -67,7 +67,7 @@ const publisher = createPublisher({
 })
 
 publisher.dispatch({
-  type: ORDER_CREATED,
+  type: Events.ORDER_CREATED,
   uri: `/api/orders/${order.id_orders}`,
   checksum: order.checksum,
   source: process.env.HEROKU_APP_NAME,
@@ -101,13 +101,13 @@ With the consumer instance, you can now listen to the SQS events.<br />
 The common way to do that, is by running a worker process to constantly poll for messages in the consumer and process them accordingly:
 
 ```js
-import { createConsumer, ORDER_CREATED } from 'lib-events';
+import { createConsumer, Events } from 'lib-events';
 
 const consumer = createConsumer({ ... })
 
 async function processMessages({ type, source, id, checksum }, ack) {
   switch (type) {
-    case (ORDER_CREATED):
+    case (Events.ORDER_CREATED):
       console.log(`${source} created an order!`);
       break;
     default:
@@ -134,3 +134,4 @@ yarn test
 ## Publishing
 
 Update the version in package.json as part of your PR and CircleCI will do the rest.
+
