@@ -2,7 +2,7 @@ import AWS from "aws-sdk";
 
 import { encodeJson, decodeJson } from "./base64";
 
-export type Message<T = undefined> = {
+export type Message<T = unknown> = {
   type: string;
   source: string;
   id?: string;
@@ -22,7 +22,7 @@ interface ConsumerParams {
   queueUrl: string;
 }
 
-type ProcessMessage = (message: Message, ack: () => Promise<unknown>) => Promise<void>
+type ProcessMessage = (message: Message, ack: () => Promise<void>) => Promise<void>
 
 interface Consumer {
   poll: (processMessage: ProcessMessage, param?: { maxNumberOfMessages: number, maxIterations: number }) => Promise<void>;
@@ -316,7 +316,7 @@ export function createPublisher({
       try {
         messageAttributes.json = {
           DataType: "String",
-          StringValue: encodeJson<Record<string, string>>(json),
+          StringValue: encodeJson<unknown>(json),
         };
       } catch (e) {
         throw new InvalidEventJsonError("event json is invalid");
@@ -375,7 +375,7 @@ export function createConsumer({
   }
   const sqs = new AWS.SQS(credentials);
 
-  function deleteMessage(message: AWS.SQS.Types.Message): () => Promise<{ response: Record<string, never>, message: AWS.SQS.Message }> {
+  function deleteMessage(message: AWS.SQS.Types.Message): () => Promise<void> {
     return function ack() {
       return new Promise((accept, reject) => {
         if (!message.ReceiptHandle) {
@@ -389,14 +389,11 @@ export function createConsumer({
             QueueUrl: queueUrl,
             ReceiptHandle: message.ReceiptHandle,
           },
-          (err: Error | undefined, response: Record<string, never>) => {
+          (err: Error | undefined) => {
             if (err) {
               return reject(err);
             }
-            return accept({
-              response,
-              message,
-            });
+            return accept()
           }
         );
       });
