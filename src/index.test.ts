@@ -6,6 +6,8 @@ import {
   Events,
 } from './index';
 
+import { encodeJson } from './base64';
+
 const publisher = createPublisher({
   accessKeyId: 'key',
   secretAccessKey: 'secret',
@@ -88,7 +90,7 @@ describe("index", () => {
     });
   });
 
-  describe("dispatch", () => {
+  describe("attributes", () => {
     it('should pluck the message attributes', function() {
       const attributes = {
         source: 'service',
@@ -110,6 +112,38 @@ describe("index", () => {
           },
           checksum: {
             Value: 1
+          }
+        }
+      });
+
+      expect(consumer.getAttributes(body)).toEqual(attributes)
+    });
+
+    it('should get json', function() {
+      const attributes = {
+        source: 'service',
+        message: 'message',
+        type: 'ORDERS_CHECKSUM',
+        checksum: 1,
+        json: {"name":"Beckie","age":28,"location":{"country": "Finland"}}
+      }
+
+      const body = JSON.stringify({
+        MessageAttributes: {
+          source: {
+            Value: 'service'
+          },
+          message: {
+            Value: 'message'
+          },
+          type: {
+            Value: 'ORDERS_CHECKSUM'
+          },
+          checksum: {
+            Value: 1
+          },
+          json: {
+            Value: encodeJson({"name":"Beckie","age":28,"location":{"country": "Finland"}})
           }
         }
       });
