@@ -134,3 +134,4 @@ yarn test
 ## Publishing
 
 Update the version in package.json as part of your PR and CircleCI will do the rest.
+
