@@ -100,12 +100,10 @@ describe("index", () => {
       }
 
       const body = JSON.stringify({
+        Message: 'message',
         MessageAttributes: {
           source: {
             Value: 'service'
-          },
-          message: {
-            Value: 'message'
           },
           type: {
             Value: 'ORDERS_CHECKSUM'
@@ -129,12 +127,10 @@ describe("index", () => {
       }
 
       const body = JSON.stringify({
+        Message: 'message',
         MessageAttributes: {
           source: {
             Value: 'service'
-          },
-          message: {
-            Value: 'message'
           },
           type: {
             Value: 'ORDERS_CHECKSUM'
@@ -160,12 +156,10 @@ describe("index", () => {
       }
 
       const body = JSON.stringify({
+        Message: 'message',
         MessageAttributes: {
           source: {
             Value: 'service'
-          },
-          message: {
-            Value: 'message'
           },
           type: {
             Value: 'ORDERS_CHECKSUM'
