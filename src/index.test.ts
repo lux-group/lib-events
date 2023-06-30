@@ -53,39 +53,39 @@ describe("index", () => {
       expect(fun).toThrow(error)
     });
 
-it('should throw error if no transactionId for fifo message', function() {
-  const fun = () => {
-    publisherFIFO.dispatch({
-      type: Events.ORDER_PENDING,
-      uri: '/api',
-      checksum: 1,
-      source: 'test',
-      message: 'test',
-      groupId: '123',
-    })
-  }
+    it('should throw error if no transactionId for fifo message', function() {
+      const fun = () => {
+        publisherFIFO.dispatch({
+          type: Events.ORDER_PENDING,
+          uri: '/api',
+          checksum: 1,
+          source: 'test',
+          message: 'test',
+          groupId: '123',
+        })
+      }
 
-  const error = new InvalidFIFOMessageError('transactionId is required for FIFO messages');
+      const error = new InvalidFIFOMessageError('transactionId is required for FIFO messages');
 
-  expect(fun).toThrow(error)
-});
+      expect(fun).toThrow(error)
+    });
 
-it('should throw error if no groupId for fifo message', function() {
-  const fun = () => {
-    publisherFIFO.dispatch({
-      type: Events.ORDER_PENDING,
-      uri: '/api',
-      checksum: 1,
-      source: 'test',
-      message: 'test',
-      transactionId: '123'
-    })
-  }
+    it('should throw error if no groupId for fifo message', function() {
+      const fun = () => {
+        publisherFIFO.dispatch({
+          type: Events.ORDER_PENDING,
+          uri: '/api',
+          checksum: 1,
+          source: 'test',
+          message: 'test',
+          transactionId: '123'
+        })
+      }
 
-  const error = new InvalidFIFOMessageError('groupId is required for FIFO messages');
+      const error = new InvalidFIFOMessageError('groupId is required for FIFO messages');
 
-  expect(fun).toThrow(error)
-});
+      expect(fun).toThrow(error)
+    });
   });
 
   describe("dispatch", () => {
