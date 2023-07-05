@@ -457,7 +457,7 @@ export function createConsumer({
       message.transactionId = data.MessageAttributes.transactionId.Value
     }
 
-    if (data.MessageAttributes.id) {
+    if (data.MessageAttributes.groupId) {
       message.groupId = data.MessageAttributes.groupId.Value
     }
 
