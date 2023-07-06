@@ -1,19 +1,21 @@
 {
   "name": "@luxuryescapes/lib-events",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "description": "LE events",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
     "lint": "eslint src --ext .js,.ts",
+    "lint:fix": "eslint src --ext .js,.ts --fix && prettier -w src",
     "test": "jest",
     "integration": "ts-node src/integration"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "aws-sdk": "^2.1365.0"
+    "@aws-sdk/client-sns": "^3.32.0",
+    "@aws-sdk/client-sqs": "^3.32.0"
   },
   "devDependencies": {
     "@types/jest": "28.1.6",
