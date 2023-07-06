@@ -1,4 +1,18 @@
-import AWS from "aws-sdk";
+import { Credentials } from "@aws-sdk/types";
+import {
+  SNSClient,
+  PublishCommand,
+  PublishCommandInput,
+  PublishCommandOutput,
+} from "@aws-sdk/client-sns";
+import {
+  SQSClient,
+  DeleteMessageCommand,
+  DeleteMessageCommandInput,
+  ReceiveMessageCommand,
+  ReceiveMessageCommandOutput,
+  Message as SQSMessage,
+} from "@aws-sdk/client-sqs";
 
 import { encodeJson, decodeJson } from "./base64";
 
@@ -22,15 +36,21 @@ interface ConsumerParams {
   queueUrl: string;
 }
 
-type ProcessMessage = (message: Message, ack: () => Promise<void>) => Promise<void>
+type ProcessMessage = (
+  message: Message,
+  ack: () => Promise<void>
+) => Promise<void>;
 
 interface Consumer {
-  poll: (processMessage: ProcessMessage, param?: { maxNumberOfMessages: number, maxIterations: number }) => Promise<void>;
-  getAttributes: (json: string) => Message
+  poll: (
+    processMessage: ProcessMessage,
+    param?: { maxNumberOfMessages: number; maxIterations: number }
+  ) => Promise<void>;
+  getAttributes: (json: string) => Message;
   mapAttributes: (data: {
-    Message: string,
-    MessageAttributes: { [key: string]: { Value: string } }
-  }) => Message
+    Message: string;
+    MessageAttributes: { [key: string]: { Value: string } };
+  }) => Message;
 }
 
 interface PublisherParams {
@@ -43,7 +63,7 @@ interface PublisherParams {
 }
 
 interface Publisher {
-  dispatch: (message: Message) => Promise<void | AWS.SNS.Types.PublishResponse>
+  dispatch: (message: Message) => Promise<void | PublishCommandOutput>;
 }
 
 interface ReceiveMessageParams {
@@ -65,17 +85,9 @@ interface MessageAttributes {
   json?: MessageAttribute;
 }
 
-interface Credentials {
-  apiVersion: string;
-  accessKeyId: string;
-  secretAccessKey: string;
-  region: string;
-  sessionToken?: string;
-}
-
 interface PollParams {
-  maxNumberOfMessages?: number
-  maxIterations?: number
+  maxNumberOfMessages?: number;
+  maxIterations?: number;
 }
 
 // Amazon SNS currently allows a maximum size of 256 KB for published messages.
@@ -165,7 +177,7 @@ export enum Events {
   USER_SIGN_UP = "USER_SIGN_UP",
 
   CAR_HIRE_LOCATION_SYNC = "CAR_HIRE_LOCATION_SYNC",
-};
+}
 
 export class InvalidEventTypeError extends Error {
   constructor(message: string) {
@@ -223,6 +235,14 @@ export class InvalidFIFOMessageError extends Error {
   }
 }
 
+export class InvalidReceiveMessageCommandDataError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = this.constructor.name;
+    Error.captureStackTrace(this, this.constructor);
+  }
+}
+
 export function createPublisher({
   accessKeyId,
   secretAccessKey,
@@ -232,17 +252,13 @@ export function createPublisher({
   apiHost,
 }: PublisherParams): Publisher {
   const credentials: Credentials = {
-    apiVersion: "2010-03-31",
+    sessionToken,
     accessKeyId,
     secretAccessKey,
-    region,
   };
 
-  if (sessionToken) {
-    credentials.sessionToken = sessionToken;
-  }
+  const sns = new SNSClient({ region, credentials });
 
-  const sns = new AWS.SNS(credentials);
   const isFIFO = topic.endsWith(".fifo");
 
   function dispatch({
@@ -255,7 +271,7 @@ export function createPublisher({
     json,
     groupId,
     transactionId,
-  }: Message): Promise<void| AWS.SNS.Types.PublishResponse> {
+  }: Message): Promise<void | PublishCommandOutput> {
     if (!Object.values<string>(Events).includes(type)) {
       throw new InvalidEventTypeError(`invalid event type '${type}'`);
     }
@@ -308,7 +324,7 @@ export function createPublisher({
 
     if (id) {
       messageAttributes.id = {
-        DataType:"String",
+        DataType: "String",
         StringValue: id,
       };
     }
@@ -324,7 +340,7 @@ export function createPublisher({
       }
     }
 
-    const eventParams: AWS.SNS.Types.PublishInput = {
+    const eventParams: PublishCommandInput = {
       MessageAttributes: { ...messageAttributes },
       TopicArn: topic,
       Message: message,
@@ -349,7 +365,9 @@ export function createPublisher({
       return Promise.resolve();
     }
 
-    return sns.publish(eventParams).promise();
+    const command = new PublishCommand(eventParams);
+
+    return sns.send(command);
   }
 
   return {
@@ -365,50 +383,45 @@ export function createConsumer({
   queueUrl,
 }: ConsumerParams): Consumer {
   const credentials: Credentials = {
-    apiVersion: "2012-11-05",
+    sessionToken,
     accessKeyId,
     secretAccessKey,
-    region,
   };
 
-  if (sessionToken) {
-    credentials.sessionToken = sessionToken;
-  }
-  const sqs = new AWS.SQS(credentials);
+  const sqs = new SQSClient({ region, credentials });
 
-  function deleteMessage(message: AWS.SQS.Types.Message): () => Promise<void> {
+  function deleteMessage(message: SQSMessage): () => Promise<void> {
     return function ack() {
       return new Promise((accept, reject) => {
         if (!message.ReceiptHandle) {
-          return reject(
-            new InvalidEventMessageError('invalid ReceiptHandle')
-          )
+          return reject(new InvalidEventMessageError("invalid ReceiptHandle"));
         }
 
-        sqs.deleteMessage(
-          {
-            QueueUrl: queueUrl,
-            ReceiptHandle: message.ReceiptHandle,
-          },
-          (err: Error | undefined) => {
-            if (err) {
-              return reject(err);
-            }
-            return accept()
+        const input: DeleteMessageCommandInput = {
+          QueueUrl: queueUrl,
+          ReceiptHandle: message.ReceiptHandle,
+        };
+
+        const command = new DeleteMessageCommand(input);
+
+        sqs.send(command, (err: Error | undefined) => {
+          if (err) {
+            return reject(err);
           }
-        );
+          return accept();
+        });
       });
     };
   }
 
-  function getAttributes(body: AWS.SQS.Types.Message['Body']): Message {
+  function getAttributes(body: SQSMessage["Body"]): Message {
     if (!body) {
       return {
         type: "",
         source: "",
         checksum: 0,
-        message: ""
-      }
+        message: "",
+      };
     }
 
     const bodyJson = JSON.parse(body);
@@ -429,65 +442,85 @@ export function createConsumer({
       type: "",
       source: "",
       checksum: 0,
-      message: ""
-    }
+      message: "",
+    };
   }
 
-  function mapAttributes(data: { Message: string, MessageAttributes: { [key: string]: { Value: string } } }): Message {
+  function mapAttributes(data: {
+    Message: string;
+    MessageAttributes: { [key: string]: { Value: string } };
+  }): Message {
     const message: Message = {
       type: data.MessageAttributes.type.Value,
       source: data.MessageAttributes.source.Value,
       checksum: Number(data.MessageAttributes.checksum.Value),
       message: data.Message,
-    }
+    };
 
     if (data.MessageAttributes.id) {
-      message.id = data.MessageAttributes.id.Value
+      message.id = data.MessageAttributes.id.Value;
     }
 
     if (data.MessageAttributes.uri) {
-      message.uri = data.MessageAttributes.uri.Value
+      message.uri = data.MessageAttributes.uri.Value;
     }
 
     if (data.MessageAttributes.json) {
-      message.json = decodeJson(data.MessageAttributes.json.Value)
+      message.json = decodeJson(data.MessageAttributes.json.Value);
     }
 
     if (data.MessageAttributes.transactionId) {
-      message.transactionId = data.MessageAttributes.transactionId.Value
+      message.transactionId = data.MessageAttributes.transactionId.Value;
     }
 
     if (data.MessageAttributes.groupId) {
-      message.groupId = data.MessageAttributes.groupId.Value
+      message.groupId = data.MessageAttributes.groupId.Value;
     }
 
-    return message
+    return message;
   }
 
-  function receiveMessages(processMessage: ProcessMessage, data: AWS.SQS.Types.ReceiveMessageResult): Promise<Message>[] {
+  function receiveMessages(
+    processMessage: ProcessMessage,
+    data: ReceiveMessageCommandOutput
+  ): Promise<Message>[] {
     if (!data.Messages || data.Messages.length === 0) {
       return [];
     }
-    return data.Messages.map((message: AWS.SQS.Types.Message): Promise<Message> => {
-      const attributes = getAttributes(message.Body)
+    return data.Messages.map((message: SQSMessage): Promise<Message> => {
+      const attributes = getAttributes(message.Body);
 
-      return processMessage(
-        attributes,
-        deleteMessage(message)
-      ).then(() => attributes);
+      return processMessage(attributes, deleteMessage(message)).then(
+        () => attributes
+      );
     });
   }
 
-  function wait(processMessage: ProcessMessage, receiveMessageParams: ReceiveMessageParams): Promise<Message[]> {
+  function wait(
+    processMessage: ProcessMessage,
+    receiveMessageParams: ReceiveMessageParams
+  ): Promise<Message[]> {
     return new Promise((accept, reject) => {
-      sqs.receiveMessage(receiveMessageParams, (err: Error | null, data: AWS.SQS.Types.ReceiveMessageResult) => {
-        if (err) {
-          return reject(err);
+      const command = new ReceiveMessageCommand(receiveMessageParams);
+
+      sqs.send(
+        command,
+        (err: Error | null, data?: ReceiveMessageCommandOutput) => {
+          if (err) {
+            return reject(err);
+          }
+
+          if (data) {
+            return Promise.all(receiveMessages(processMessage, data))
+              .then(accept)
+              .catch(reject);
+          }
+
+          return reject(
+            new InvalidReceiveMessageCommandDataError("data is undefined")
+          );
         }
-        Promise.all(receiveMessages(processMessage, data))
-          .then(accept)
-          .catch(reject);
-      });
+      );
     });
   }
 
@@ -514,23 +547,15 @@ export function createConsumer({
     t: number,
     receiveMessageParams: ReceiveMessageParams
   ): Promise<void> {
-    return pollStart(
-      processMessage,
-      n,
-      t,
-      receiveMessageParams
-    );
+    return pollStart(processMessage, n, t, receiveMessageParams);
   }
 
   return {
-    poll: (processMessage: ProcessMessage, params?: PollParams) => (
-      poll(
-        processMessage,
-        params?.maxIterations ?? 10,
-        0,
-        { QueueUrl: queueUrl, MaxNumberOfMessages: params?.maxNumberOfMessages ?? 10 }
-      )
-    ),
+    poll: (processMessage: ProcessMessage, params?: PollParams) =>
+      poll(processMessage, params?.maxIterations ?? 10, 0, {
+        QueueUrl: queueUrl,
+        MaxNumberOfMessages: params?.maxNumberOfMessages ?? 10,
+      }),
     getAttributes,
     mapAttributes,
   };
