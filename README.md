@@ -4,6 +4,18 @@
 
 For a complete guide on how to set it up, please refer to: [Publishing and Consuming events](https://aussiecommerce.atlassian.net/wiki/spaces/TEC/pages/1799487497/Publishing+and+Consuming+events).
 
+## Installation
+
+Install `lib-events` via Luxury Escapes' NPM package registry by adding the following under `dependencies` in `package.json`:
+
+```json
+  "dependencies": {
+    ...
+    "@luxuryescapes/lib-events": "^3.0.1",
+    ...
+  }
+```
+
 ## Creating the Publisher
 
 The way we "dispatch" an event is by publishing it to Amazon SNS.<br />
