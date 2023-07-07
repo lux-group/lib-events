@@ -239,14 +239,6 @@ export class InvalidFIFOMessageError extends Error {
   }
 }
 
-export class InvalidReceiveMessageCommandDataError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = this.constructor.name;
-    Error.captureStackTrace(this, this.constructor);
-  }
-}
-
 export function createPublisher({
   accessKeyId,
   secretAccessKey,
@@ -395,26 +387,19 @@ export function createConsumer({
   const sqs = new SQSClient({ region, credentials });
 
   function deleteMessage(message: SQSMessage): () => Promise<void> {
-    return function ack() {
-      return new Promise((accept, reject) => {
-        if (!message.ReceiptHandle) {
-          return reject(new InvalidEventMessageError("invalid ReceiptHandle"));
-        }
+    if (!message.ReceiptHandle) {
+      throw new InvalidEventMessageError("invalid ReceiptHandle");
+    }
 
-        const input: DeleteMessageCommandInput = {
-          QueueUrl: queueUrl,
-          ReceiptHandle: message.ReceiptHandle,
-        };
+    return async function ack(): Promise<void> {
+      const input: DeleteMessageCommandInput = {
+        QueueUrl: queueUrl,
+        ReceiptHandle: message.ReceiptHandle,
+      };
 
-        const command = new DeleteMessageCommand(input);
+      const command = new DeleteMessageCommand(input);
 
-        sqs.send(command, (err: Error | undefined) => {
-          if (err) {
-            return reject(err);
-          }
-          return accept();
-        });
-      });
+      await sqs.send(command);
     };
   }
 
@@ -491,58 +476,48 @@ export function createConsumer({
     if (!data.Messages || data.Messages.length === 0) {
       return [];
     }
-    return data.Messages.map((message: SQSMessage): Promise<Message> => {
+
+    return data.Messages.map(async (message: SQSMessage): Promise<Message> => {
       const attributes = getAttributes(message.Body);
 
-      return processMessage(attributes, deleteMessage(message)).then(
-        () => attributes
-      );
+      await processMessage(attributes, deleteMessage(message));
+
+      return attributes;
     });
   }
 
-  function wait(
+  async function wait(
     processMessage: ProcessMessage,
     receiveMessageParams: ReceiveMessageParams
   ): Promise<Message[]> {
-    return new Promise((accept, reject) => {
-      const command = new ReceiveMessageCommand(receiveMessageParams);
+    const command = new ReceiveMessageCommand(receiveMessageParams);
 
-      sqs.send(
-        command,
-        (err: Error | null, data?: ReceiveMessageCommandOutput) => {
-          if (err) {
-            return reject(err);
-          }
+    const data = await sqs.send(command);
 
-          if (data) {
-            return Promise.all(receiveMessages(processMessage, data))
-              .then(accept)
-              .catch(reject);
-          }
+    const messages = await Promise.all(receiveMessages(processMessage, data));
 
-          return reject(
-            new InvalidReceiveMessageCommandDataError("data is undefined")
-          );
-        }
-      );
-    });
+    return messages;
   }
 
-  function _poll(
+  async function _poll(
     processMessage: ProcessMessage,
     n: number,
     t: number,
     receiveMessageParams: ReceiveMessageParams
   ): Promise<void> {
     if (t >= n) {
-      return Promise.resolve();
+      return;
     }
-    return wait(processMessage, receiveMessageParams).then((results) => {
-      if (results.length == 0) {
-        return Promise.resolve();
-      }
-      return _poll(processMessage, n, t + 1, receiveMessageParams);
-    });
+
+    const results = await wait(processMessage, receiveMessageParams);
+
+    if (results.length == 0) {
+      return;
+    }
+
+    const next = await _poll(processMessage, n, t + 1, receiveMessageParams);
+
+    return next;
   }
 
   function poll(processMessage: ProcessMessage, params?: PollParams) {
