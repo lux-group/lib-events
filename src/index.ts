@@ -93,6 +93,10 @@ interface PollParams {
 // Amazon SNS currently allows a maximum size of 256 KB for published messages.
 const MAX_EVENT_MESSAGE_SIZE = 256 * 1024;
 
+const DEFAULT_MAX_ITERATIONS = 10;
+
+const DEFAULT_MAX_NUMBER_OF_MESSAGES = 10;
+
 export enum Events {
   ORDER_PENDING = "ORDER_PENDING",
   ORDER_COMPLETED = "ORDER_COMPLETED",
@@ -524,7 +528,7 @@ export function createConsumer({
     });
   }
 
-  function pollStart(
+  function _poll(
     processMessage: ProcessMessage,
     n: number,
     t: number,
@@ -537,25 +541,25 @@ export function createConsumer({
       if (results.length == 0) {
         return Promise.resolve();
       }
-      return poll(processMessage, n, t + 1, receiveMessageParams);
+      return _poll(processMessage, n, t + 1, receiveMessageParams);
     });
   }
 
-  function poll(
-    processMessage: ProcessMessage,
-    n: number,
-    t: number,
-    receiveMessageParams: ReceiveMessageParams
-  ): Promise<void> {
-    return pollStart(processMessage, n, t, receiveMessageParams);
+  function poll(processMessage: ProcessMessage, params?: PollParams) {
+    return _poll(
+      processMessage,
+      params?.maxIterations ?? DEFAULT_MAX_ITERATIONS,
+      0,
+      {
+        QueueUrl: queueUrl,
+        MaxNumberOfMessages:
+          params?.maxNumberOfMessages ?? DEFAULT_MAX_NUMBER_OF_MESSAGES,
+      }
+    );
   }
 
   return {
-    poll: (processMessage: ProcessMessage, params?: PollParams) =>
-      poll(processMessage, params?.maxIterations ?? 10, 0, {
-        QueueUrl: queueUrl,
-        MaxNumberOfMessages: params?.maxNumberOfMessages ?? 10,
-      }),
+    poll,
     getAttributes,
     mapAttributes,
   };

@@ -11,7 +11,7 @@ Install `lib-events` via Luxury Escapes' NPM package registry by adding the foll
 ```json
   "dependencies": {
     ...
-    "@luxuryescapes/lib-events": "^3.0.1",
+    "@luxuryescapes/lib-events": "^3.0.3",
     ...
   }
 ```
