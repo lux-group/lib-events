@@ -195,6 +195,8 @@ export enum Events {
   USER_SIGN_UP = "USER_SIGN_UP",
 
   CAR_HIRE_LOCATION_SYNC = "CAR_HIRE_LOCATION_SYNC",
+
+  EXPERIENCE_UPDATE = "EXPERIENCE_UPDATE",
 }
 
 export class InvalidEventTypeError extends Error {
