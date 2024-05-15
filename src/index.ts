@@ -26,6 +26,7 @@ export type Message<T = unknown> = {
   json?: T;
   transactionId?: string;
   groupId?: string;
+  brand?: string;
 };
 
 interface ConsumerParams {
