@@ -200,7 +200,7 @@ export enum Events {
 
   CAR_HIRE_LOCATION_SYNC = "CAR_HIRE_LOCATION_SYNC",
 
-  ADS_BLOCK = "ADS_BLOCK",
+  AD_FEED_OFFER_BLOCK = "AD_FEED_OFFER_BLOCK",
 }
 
 export class InvalidEventTypeError extends Error {
