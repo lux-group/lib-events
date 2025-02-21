@@ -46,7 +46,6 @@ export class PubSubClient {
       this.subscription.on('message', async (message: Message) => {
         //TODO: add logging and error handling - Need to verify what needs to be done based on the error or if all the errors are handled by the onError function
         await onMessage(message);
-        message.ack();
       });
 
       if (onDebug) {

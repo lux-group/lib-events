@@ -207,7 +207,7 @@ export enum Events {
   AGENT_HUB_COMMISSION_RULES_SYNC = "AGENT_HUB_COMMISSION_RULES_SYNC",
 }
 
-export enum SnowPlowEvent {
+export enum AnalyticEvents {
   PRODUCT_IMPRESSION = "product_impression",
   PRODUCT_CLICK = "product_click",
   PRODUCT_PURCHASE = "purchase_success",
