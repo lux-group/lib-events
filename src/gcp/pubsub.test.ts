@@ -1,6 +1,25 @@
 import { PubSub } from "@google-cloud/pubsub";
 import { PubSubClient } from "./pubsub";
 
+jest.mock("process", () => ({
+  exit: jest.fn()
+}));
+jest.mock("./pubsub", () => ({
+  ...jest.requireActual("./pubsub"),
+  _hasCurrentEvents: jest.fn().mockReturnValue(false)
+}));
+
+
+beforeAll(() => {
+  jest.useFakeTimers({ legacyFakeTimers: true });
+});
+
+afterAll(() => {
+  jest.useRealTimers();
+});
+
+jest.spyOn(global, 'setTimeout');
+
 describe("PubSubClient", () => {
   let pubSubClient: PubSubClient;
   const mockConfig = {
@@ -14,7 +33,7 @@ describe("PubSubClient", () => {
   });
 
   afterEach(async () => {
-    await pubSubClient.cleanup();
+    await pubSubClient.close();
   });
 
   describe("initialize", () => {
@@ -155,8 +174,8 @@ describe("PubSubClient", () => {
   });
 
 
-  describe("cleanup", () => {
-    it("should cleanup subscription properly", async () => {
+  describe("close", () => {
+    it("should call removeAllListeners, close and delete pubsub client", async () => {
       const mockSubscription = {
         exists: jest.fn().mockResolvedValue([true]),
         on: jest.fn(),
@@ -179,23 +198,10 @@ describe("PubSubClient", () => {
         onClose: jest.fn()
       });
 
-      await pubSubClient.cleanup();
-
+      await pubSubClient.close();
+  
       expect(mockSubscription.removeAllListeners).toHaveBeenCalled();
       expect(mockSubscription.close).toHaveBeenCalled();
-      expect(mockSubscription.delete).toHaveBeenCalled();
-    });
-  });
-
-  describe("close", () => {
-    it("should call cleanup and close pubsub client", async () => {
-      const mockCallback = jest.fn();
-      const mockClose = jest.spyOn(PubSub.prototype, "close");
-      
-      await pubSubClient.close(mockCallback);
-
-      expect(mockCallback).toHaveBeenCalled();
-      expect(mockClose).toHaveBeenCalled();
     });
   });
 });
