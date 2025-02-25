@@ -76,6 +76,8 @@ export class PubSubClient {
       logger("Permission denied.", { error });
     } else if (error.code === 9){
       logger("Invalid argument.", { error });
+    } else {
+      logger("Unhandled error.", { error });
     }
   }
 
