@@ -18,6 +18,8 @@ interface PubSubInitializeParams {
   onError: (error: Error) => void;
   onDebug?: (message: DebugMessage) => void;
   onClose?: () => void;
+  shutdownAttempts?: number;
+  filterEvents?: string[];
 }
 
 export class PubSubClient {
@@ -25,7 +27,12 @@ export class PubSubClient {
   private subscription: Subscription | null = null;
   private eventQueue = new Set<string>();
   private isShuttingDown = false;
-  private hasShutDown = false;
+  private initializeParams: PubSubInitializeParams = {
+    onMessage: async (message: Message) => { message.ack() },
+    onError: () => { throw new Error('Error occurred') },
+    shutdownAttempts: 30,
+    filterEvents: [],
+  };
 
   constructor(private config: PubSubClientConfig) {
     this.pubSubClient = new PubSub({
@@ -41,7 +48,9 @@ export class PubSubClient {
    * @param params.onClose - The close handler.
    */
   async initialize(params: PubSubInitializeParams): Promise<void> {
-    const { onMessage, onError, onDebug, onClose } = params;
+    this.initializeParams = { ...this.initializeParams, ...params };
+    const { onMessage, onError, onDebug, onClose, filterEvents } = this.initializeParams;
+
     const topic = this.pubSubClient.topic(this.config.topicName);
 
     // Create subscription if it doesn't exist
@@ -58,7 +67,7 @@ export class PubSubClient {
       }
 
       this.eventQueue.add(message.id);
-      if (this._isValidEvent(message.attributes.event_name)) {
+      if (this._isValidEvent(message.attributes.event_name, filterEvents)) {
         await onMessage(message);
       } else {
         // Ack messages we don't process to prevent redelivery
@@ -83,16 +92,15 @@ export class PubSubClient {
     });
   }
 
-  private _isValidEvent = (value: string): value is AnalyticEvents => {
-    return [
-      AnalyticEvents.PRODUCT_IMPRESSION,
-      AnalyticEvents.PRODUCT_CLICK,
-      AnalyticEvents.PRODUCT_PURCHASE,
-    ].includes(value as AnalyticEvents);
+  private _isValidEvent = (value: string, filterEvents?: string[]): value is AnalyticEvents => {
+    //If no events were defined process everything
+    if (!filterEvents?.length) {
+      return true;
+    }
+    return filterEvents.includes(value);
   };
 
-  private async cleanup(): Promise<void> {
-    const MAX_RETRY_ATTEMPTS = 30; // 30 seconds max wait
+  private async cleanup(callback?: () => void): Promise<void> {
     let attempts = 0;
 
     const attemptCleanup = async (): Promise<void> => {
@@ -101,20 +109,17 @@ export class PubSubClient {
           this.subscription.removeAllListeners();
           await this.subscription.close();
           this.subscription = null;
-          process.exit(0);
+          callback?.();
         } catch (error) {
-          console.error('Error during cleanup:', error);
-          process.exit(1);
+          throw new PubSubClientCleanupError('Error during cleanup', error as Error);
         }
       } else if (!this.subscription) {
-        console.error('Cleanup finished')
-        process.exit(0);
-      } else if (attempts < MAX_RETRY_ATTEMPTS) {
+        callback?.();
+      } else if (attempts < (this.initializeParams.shutdownAttempts ?? 30)) {
         attempts++;
         setTimeout(attemptCleanup, 1000);
       } else {
-        console.warn('Cleanup timed out after 30 seconds, forcing exit');
-        process.exit(1);
+        throw new PubSubClientCleanupTimeoutError(`Cleanup timed out after ${this.initializeParams.shutdownAttempts} seconds, forcing exit`);
       }
     };
 
@@ -125,15 +130,72 @@ export class PubSubClient {
     return this.eventQueue.size > 0;
   }
 
-  async close(): Promise<void> {
+  async close(callback?: () => void): Promise<void> {
     this.isShuttingDown = true;
     try {
-      await this.cleanup();
+      await this.cleanup(callback);
       await this.pubSubClient.close();
-      process.exit(0);
     } catch (err: any) {
-      Error.captureStackTrace(err);
-      process.exit(1);
+      throw new PubSubClientCleanupError("Error during cleanup", err);
     }
+  }
+}
+
+export class PubSubClientError extends Error {
+  constructor(message: string, error?: Error) {
+    super(message);
+    this.name = this.constructor.name;
+    Error.captureStackTrace(this, this.constructor);
+    if (error) {
+      this.stack = this.stack + '\nCaused by: ' + error.stack;
+    }
+  }
+}
+
+export class PubSubClientCleanupError extends PubSubClientError {
+  constructor(message: string, error?: Error) {
+    super(message, error);
+    this.name = this.constructor.name;
+    Error.captureStackTrace(this, this.constructor);
+  }
+}
+
+export class PubSubClientCleanupTimeoutError extends PubSubClientError {
+  constructor(message: string, error?: Error) {
+    super(message, error);
+    this.name = this.constructor.name;
+    Error.captureStackTrace(this, this.constructor);
+  }
+}
+
+export class PubSubClientCloseError extends PubSubClientError {
+  constructor(message: string, error?: Error) {
+    super(message, error);
+    this.name = this.constructor.name;
+    Error.captureStackTrace(this, this.constructor);
+  }
+}
+
+export class PubSubClientInitializeError extends PubSubClientError {
+  constructor(message: string, error?: Error) {
+    super(message, error);
+    this.name = this.constructor.name;
+    Error.captureStackTrace(this, this.constructor);
+  }
+}
+
+export class PubSubClientMessageError extends PubSubClientError {
+  constructor(message: string, error?: Error) {
+    super(message, error);
+    this.name = this.constructor.name;
+    Error.captureStackTrace(this, this.constructor);
+  }
+}
+
+export class PubSubClientDebugError extends PubSubClientError {
+  constructor(message: string, error?: Error) {
+    super(message, error);
+    this.name = this.constructor.name;
+    Error.captureStackTrace(this, this.constructor);
   }
 }

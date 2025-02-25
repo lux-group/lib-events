@@ -9,17 +9,6 @@ jest.mock("./pubsub", () => ({
   _hasCurrentEvents: jest.fn().mockReturnValue(false)
 }));
 
-
-beforeAll(() => {
-  jest.useFakeTimers({ legacyFakeTimers: true });
-});
-
-afterAll(() => {
-  jest.useRealTimers();
-});
-
-jest.spyOn(global, 'setTimeout');
-
 describe("PubSubClient", () => {
   let pubSubClient: PubSubClient;
   const mockConfig = {
@@ -123,7 +112,6 @@ describe("PubSubClient", () => {
 
       expect(mockSubscription.on).not.toHaveBeenCalledWith("debug", expect.any(Function));
     });
-  });
 
     it("should register close handler only if closeHandler is provided", async () => {
       const mockSubscription = {
@@ -149,30 +137,30 @@ describe("PubSubClient", () => {
       expect(mockSubscription.on).not.toHaveBeenCalledWith("close", expect.any(Function));
     });
 
-  it("should throw an error if initialization fails", async () => {
-    const mockSubscription = {
-      exists: jest.fn().mockRejectedValue(new Error("Initialization failed")),
-      on: jest.fn(),
-      removeAllListeners: jest.fn(),
-      close: jest.fn(),
-      delete: jest.fn()
-    };
+    it("should throw an error if initialization fails", async () => {
+      const mockSubscription = {
+        exists: jest.fn().mockRejectedValue(new Error("Initialization failed")),
+        on: jest.fn(),
+        removeAllListeners: jest.fn(),
+        close: jest.fn(),
+        delete: jest.fn()
+      };
 
-    const mockTopic = {
-      subscription: jest.fn().mockReturnValue(mockSubscription),
-      createSubscription: jest.fn()
-    };
+      const mockTopic = {
+        subscription: jest.fn().mockReturnValue(mockSubscription),
+        createSubscription: jest.fn()
+      };
 
-    (PubSub.prototype as any).topic = jest.fn().mockReturnValue(mockTopic);
+      (PubSub.prototype as any).topic = jest.fn().mockReturnValue(mockTopic);
 
-    await expect(pubSubClient.initialize({
-      onMessage: jest.fn(),
-      onError: jest.fn()
-    })).rejects.toThrow("Initialization failed");
+      await expect(pubSubClient.initialize({
+        onMessage: jest.fn(),
+        onError: jest.fn()
+      })).rejects.toThrow("Initialization failed");
 
-    expect(mockSubscription.exists).toHaveBeenCalled();
+      expect(mockSubscription.exists).toHaveBeenCalled();
+    });
   });
-
 
   describe("close", () => {
     it("should call removeAllListeners, close and delete pubsub client", async () => {
