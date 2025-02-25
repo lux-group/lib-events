@@ -68,10 +68,12 @@ export class PubSubClient {
 
       this.eventQueue.add(message.id);
       if (this._isValidEvent(message.attributes.event_name, filterEvents)) {
-        await onMessage(message);
-      } else {
-        // Ack messages we don't process to prevent redelivery
-        message.ack();
+        try {
+          await onMessage(message);
+          message.ack();
+        } catch (error) {
+          message.nack();
+        }
       }
       this.eventQueue.delete(message.id);
     });
