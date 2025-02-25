@@ -207,12 +207,6 @@ export enum Events {
   AGENT_HUB_COMMISSION_RULES_SYNC = "AGENT_HUB_COMMISSION_RULES_SYNC",
 }
 
-export enum AnalyticEvents {
-  PRODUCT_IMPRESSION = "product_impression",
-  PRODUCT_CLICK = "product_click",
-  PRODUCT_PURCHASE = "purchase_success",
-}
-
 export class InvalidEventTypeError extends Error {
   constructor(message: string) {
     super(message);
