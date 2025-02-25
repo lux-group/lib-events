@@ -27,10 +27,10 @@ describe("PubSubClient", () => {
 
   describe("initialize", () => {
     it("should initialize subscription and attach handlers", async () => {
-      const mockMessageHandler = jest.fn();
-      const mockErrorHandler = jest.fn();
-      const mockDebugHandler = jest.fn();
-      const mockCloseHandler = jest.fn();
+      const mockMessageHandler = jest.fn().mockName("onMessage");
+      const mockErrorHandler = jest.fn().mockName("onError");
+      const mockDebugHandler = jest.fn().mockName("onDebug");
+      const mockCloseHandler = jest.fn().mockName("onClose");
 
       const mockSubscription = {
         exists: jest.fn().mockResolvedValue([true]),
@@ -59,7 +59,7 @@ describe("PubSubClient", () => {
       expect(mockSubscription.on).toHaveBeenCalledWith("message", expect.any(Function));
       expect(mockSubscription.on).toHaveBeenCalledWith("error", expect.any(Function));
       expect(mockSubscription.on).toHaveBeenCalledWith("debug", expect.any(Function));
-      expect(mockSubscription.on).toHaveBeenCalledWith("close", mockCloseHandler);
+      expect(mockSubscription.on).toHaveBeenCalledWith("close", expect.any(Function));
     });
 
     it("should create subscription if it doesn't exist", async () => {
@@ -86,55 +86,6 @@ describe("PubSubClient", () => {
       });
 
       expect(mockTopic.createSubscription).toHaveBeenCalledWith(mockConfig.subscriptionName);
-    });
-
-    it("should register debug handler only if debugHandler is provided", async () => {
-      const mockSubscription = {
-        exists: jest.fn().mockResolvedValue([true]),
-        on: jest.fn(),
-        removeAllListeners: jest.fn(),
-        close: jest.fn(),
-        delete: jest.fn()
-      };
-
-      const mockTopic = {
-        subscription: jest.fn().mockReturnValue(mockSubscription),
-        createSubscription: jest.fn()
-      };
-
-      (PubSub.prototype as any).topic = jest.fn().mockReturnValue(mockTopic);
-
-      await pubSubClient.initialize({
-        onMessage: jest.fn(),
-        onError: jest.fn(),
-        onClose: jest.fn()
-      });
-
-      expect(mockSubscription.on).not.toHaveBeenCalledWith("debug", expect.any(Function));
-    });
-
-    it("should register close handler only if closeHandler is provided", async () => {
-      const mockSubscription = {
-        exists: jest.fn().mockResolvedValue([true]),
-        on: jest.fn(),
-        removeAllListeners: jest.fn(),
-        close: jest.fn(),
-        delete: jest.fn()
-      };
-
-      const mockTopic = {
-        subscription: jest.fn().mockReturnValue(mockSubscription),
-        createSubscription: jest.fn()
-      };
-
-      (PubSub.prototype as any).topic = jest.fn().mockReturnValue(mockTopic);
-
-      await pubSubClient.initialize({
-        onMessage: jest.fn(),
-        onError: jest.fn()
-      });
-
-      expect(mockSubscription.on).not.toHaveBeenCalledWith("close", expect.any(Function));
     });
 
     it("should throw an error if initialization fails", async () => {

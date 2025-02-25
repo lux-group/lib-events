@@ -1,11 +1,46 @@
 import {
   DebugMessage,
   Message,
-  PubSub,
+  PubSub, StatusError,
   Subscription,
 } from "@google-cloud/pubsub";
 import { AnalyticEvents } from "..";
-import process from "process";
+
+
+export class PubSubClientError extends Error {
+  constructor(message: string, error?: Error) {
+    super(message);
+    this.name = this.constructor.name;
+    Error.captureStackTrace(this, this.constructor);
+    if (error) {
+      this.stack = this.stack + '\nCaused by: ' + error.stack;
+    }
+  }
+}
+
+export class PubSubClientCleanupError extends PubSubClientError {
+  constructor(message: string, error?: Error) {
+    super(message, error);
+    this.name = this.constructor.name;
+    Error.captureStackTrace(this, this.constructor);
+  }
+}
+
+export class PubSubClientCleanupTimeoutError extends PubSubClientError {
+  constructor(message: string, error?: Error) {
+    super(message, error);
+    this.name = this.constructor.name;
+    Error.captureStackTrace(this, this.constructor);
+  }
+}
+
+export class PubSubClientMessageError extends PubSubClientError {
+  constructor(message: string, error?: Error) {
+    super(message, error);
+    this.name = this.constructor.name;
+    Error.captureStackTrace(this, this.constructor);
+  }
+}
 
 interface PubSubClientConfig {
   projectId: string;
@@ -13,25 +48,57 @@ interface PubSubClientConfig {
   topicName: string;
 }
 
+/**
+ * @throws {PubSubClientMessageError}
+ */
+type OnMessageHandler = (message: Message) => Promise<void>;
+
 interface PubSubInitializeParams {
-  onMessage: (message: Message) => Promise<void>;
-  onError: (error: Error) => void;
+  onMessage: OnMessageHandler;
+  onError?: (error: StatusError) => void;
   onDebug?: (message: DebugMessage) => void;
   onClose?: () => void;
   shutdownAttempts?: number;
   filterEvents?: string[];
+  logger?: (message: string, ...meta: any[]) => void;
 }
 
 export class PubSubClient {
+  private _defaultErrorHandler = (error: StatusError) => {
+    const logger = this.initializeParams.logger ?? this._defaultLogger;
+    if (error.code === 4) {
+      logger('Deadline exceeded. Retrying...', { error });
+    } else if (error.code === 3){
+      logger("Service unavailable. Retrying...", { error });
+    } else if (error.code === 5){
+      logger("Subscription or topic not found.", { error });
+    } else if (error.code === 7){
+      logger("Permission denied.", { error });
+    } else if (error.code === 9){
+      logger("Invalid argument.", { error });
+    }
+  }
+
+  private _defaultDebugger = (message: DebugMessage) => {
+    const logger = this.initializeParams.logger ?? this._defaultLogger;
+    logger('Debug message received', { message });
+  }
+
+  private _defaultLogger = (message: string, ...meta: any[]) => {
+    console.info(message, meta);
+  }
+
   private pubSubClient: PubSub;
   private subscription: Subscription | null = null;
   private eventQueue = new Set<string>();
   private isShuttingDown = false;
   private initializeParams: PubSubInitializeParams = {
     onMessage: async (message: Message) => { message.ack() },
-    onError: () => { throw new Error('Error occurred') },
+    onError: this._defaultErrorHandler.bind(this),
+    onDebug: this._defaultDebugger.bind(this),
     shutdownAttempts: 30,
     filterEvents: [],
+    logger: this._defaultLogger.bind(this),
   };
 
   constructor(private config: PubSubClientConfig) {
@@ -88,10 +155,9 @@ export class PubSubClient {
       this.subscription.on("close", onClose);
     }
 
-    this.subscription.on("error", (error: Error) => {
-      onError(error);
-      process.exit(1);
-    });
+    if (onError) {
+      this.subscription.on("error", onError);
+    }
   }
 
   private _isValidEvent = (value: string, filterEvents?: string[]): value is AnalyticEvents => {
@@ -102,7 +168,7 @@ export class PubSubClient {
     return filterEvents.includes(value);
   };
 
-  private async cleanup(callback?: () => void): Promise<void> {
+  private async _cleanup(callback?: () => void): Promise<void> {
     let attempts = 0;
 
     const attemptCleanup = async (): Promise<void> => {
@@ -135,69 +201,10 @@ export class PubSubClient {
   async close(callback?: () => void): Promise<void> {
     this.isShuttingDown = true;
     try {
-      await this.cleanup(callback);
+      await this._cleanup(callback);
       await this.pubSubClient.close();
     } catch (err: any) {
       throw new PubSubClientCleanupError("Error during cleanup", err);
     }
-  }
-}
-
-export class PubSubClientError extends Error {
-  constructor(message: string, error?: Error) {
-    super(message);
-    this.name = this.constructor.name;
-    Error.captureStackTrace(this, this.constructor);
-    if (error) {
-      this.stack = this.stack + '\nCaused by: ' + error.stack;
-    }
-  }
-}
-
-export class PubSubClientCleanupError extends PubSubClientError {
-  constructor(message: string, error?: Error) {
-    super(message, error);
-    this.name = this.constructor.name;
-    Error.captureStackTrace(this, this.constructor);
-  }
-}
-
-export class PubSubClientCleanupTimeoutError extends PubSubClientError {
-  constructor(message: string, error?: Error) {
-    super(message, error);
-    this.name = this.constructor.name;
-    Error.captureStackTrace(this, this.constructor);
-  }
-}
-
-export class PubSubClientCloseError extends PubSubClientError {
-  constructor(message: string, error?: Error) {
-    super(message, error);
-    this.name = this.constructor.name;
-    Error.captureStackTrace(this, this.constructor);
-  }
-}
-
-export class PubSubClientInitializeError extends PubSubClientError {
-  constructor(message: string, error?: Error) {
-    super(message, error);
-    this.name = this.constructor.name;
-    Error.captureStackTrace(this, this.constructor);
-  }
-}
-
-export class PubSubClientMessageError extends PubSubClientError {
-  constructor(message: string, error?: Error) {
-    super(message, error);
-    this.name = this.constructor.name;
-    Error.captureStackTrace(this, this.constructor);
-  }
-}
-
-export class PubSubClientDebugError extends PubSubClientError {
-  constructor(message: string, error?: Error) {
-    super(message, error);
-    this.name = this.constructor.name;
-    Error.captureStackTrace(this, this.constructor);
   }
 }
