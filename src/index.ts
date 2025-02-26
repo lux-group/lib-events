@@ -569,3 +569,5 @@ export function createConsumer({
     mapAttributes,
   };
 }
+
+export * as pubsub from "./gcp/pubsub";
