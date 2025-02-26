@@ -126,6 +126,7 @@ export class PubSubClient {
   async initialize(params: PubSubInitializeParams): Promise<void> {
     this.initializeParams = { ...this.initializeParams, ...params };
     const { onMessage, onError, onDebug, onClose, filterEvents } = this.initializeParams;
+    const logger = this.initializeParams.logger ?? this._defaultLogger;
 
     const topic = this.pubSubClient.topic(this.config.topicName);
 
@@ -147,6 +148,10 @@ export class PubSubClient {
           await onMessage(message);
           message.ack();
         } catch (error) {
+          logger('Failed to process event: ', {
+            error,
+            message
+          });
           message.nack();
         }
       }
