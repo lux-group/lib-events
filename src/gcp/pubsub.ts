@@ -132,7 +132,6 @@ export class PubSubClient {
     this.subscription = topic.subscription(this.config.subscriptionName);
     const [exists] = await this.subscription.exists();
 
-    // Create subscription if it doesn't exist
     if (!exists) {
       await topic.createSubscription(this.config.subscriptionName);
     }
