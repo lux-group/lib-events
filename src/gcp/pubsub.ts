@@ -98,7 +98,7 @@ export class PubSubClient {
 
   private pubSubClient: PubSub;
   private subscription: Subscription | null = null;
-  private eventQueue = new Set<string>();
+  private isProcessing = false;
   private isShuttingDown = false;
   private initializeParams: PubSubInitializeParams = {
     onMessage: async (message: Message) => { message.ack() },
@@ -142,7 +142,7 @@ export class PubSubClient {
         return;
       }
 
-      this.eventQueue.add(message.id);
+      this.isProcessing = true;
       if (this._isValidEvent(message.attributes.event_name, filterEvents)) {
         try {
           await onMessage(message);
@@ -151,7 +151,7 @@ export class PubSubClient {
           message.nack();
         }
       }
-      this.eventQueue.delete(message.id);
+      this.isProcessing = false;
     });
 
     if (onDebug) {
@@ -181,7 +181,7 @@ export class PubSubClient {
     let attempts = 0;
 
     const attemptCleanup = async (): Promise<void> => {
-      if (!!this.subscription && !this._hasCurrentEvents()) {
+      if (!!this.subscription && !this.isProcessing) {
         try {
           this.subscription.removeAllListeners();
           await this.subscription.close();
@@ -201,10 +201,6 @@ export class PubSubClient {
     };
 
     await attemptCleanup();
-  }
-
-  private _hasCurrentEvents() {
-    return this.eventQueue.size > 0;
   }
 
   async close(callback?: () => void): Promise<void> {
