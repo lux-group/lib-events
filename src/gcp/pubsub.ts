@@ -69,6 +69,8 @@ interface PubSubInitializeParams {
   logger?: (message: string, ...meta: any[]) => void;
 }
 
+const DEFAULT_SHUTDOWN_RETRY_INTERVAL = 1000; // 1 second
+
 export class PubSubClient {
   private _defaultErrorHandler = (error: StatusError) => {
     const logger = this.initializeParams.logger ?? this._defaultLogger;
@@ -152,7 +154,6 @@ export class PubSubClient {
             error,
             message
           });
-          message.nack();
         }
       }
       this.isProcessing = false;
@@ -203,9 +204,9 @@ export class PubSubClient {
         }
       } else if (!this.subscription) {
         callback?.();
-      } else if (attempts < (this.initializeParams.shutdownTimeout ?? 30)) {
+      } else if (attempts < ((this.initializeParams.shutdownTimeout ?? 30) / DEFAULT_SHUTDOWN_RETRY_INTERVAL)) {
         attempts++;
-        setTimeout(attemptCleanup, 1000);
+        setTimeout(attemptCleanup, DEFAULT_SHUTDOWN_RETRY_INTERVAL);
       } else {
         callback?.();
         throw new PubSubClientCleanupTimeoutError(`Cleanup timed out after ${this.initializeParams.shutdownTimeout} seconds, forcing exit`);
