@@ -72,17 +72,17 @@ interface PubSubInitializeParams {
 export class PubSubClient {
   private _defaultErrorHandler = (error: StatusError) => {
     const logger = this.initializeParams.logger ?? this._defaultLogger;
-    if (error.code === 4) {
+    if (error.code === 4) { // Deadline exceeded
       logger('Deadline exceeded. Retrying...', { error });
-    } else if (error.code === 3){
+    } else if (error.code === 3){ // Unavailable
       logger("Service unavailable. Retrying...", { error });
-    } else if (error.code === 5){
+    } else if (error.code === 5){ // Topic not found
       logger("Subscription or topic not found.", { error });
-    } else if (error.code === 7){
+    } else if (error.code === 7){ // Permission denied
       logger("Permission denied.", { error });
-    } else if (error.code === 9){
+    } else if (error.code === 9){ // Invalid argument
       logger("Invalid argument.", { error });
-    } else {
+    } else { // Unhandled / Unknown error
       logger("Unhandled error.", { error });
     }
   }
