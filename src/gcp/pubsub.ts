@@ -64,7 +64,7 @@ interface PubSubInitializeParams {
   onError?: (error: StatusError) => void;
   onDebug?: (message: DebugMessage) => void;
   onClose?: () => void;
-  shutdownTimeout?: number;
+  shutdownTimeoutMillis?: number;
   filterEvents?: string[];
   logger?: (message: string, ...meta: any[]) => void;
 }
@@ -106,7 +106,7 @@ export class PubSubClient {
     onMessage: async (message: Message) => { message.ack() },
     onError: this._defaultErrorHandler.bind(this),
     onDebug: this._defaultDebugger.bind(this),
-    shutdownTimeout: 30,
+    shutdownTimeoutMillis: 30000,
     filterEvents: [],
     logger: this._defaultLogger.bind(this),
   };
@@ -204,12 +204,12 @@ export class PubSubClient {
         }
       } else if (!this.subscription) {
         callback?.();
-      } else if (attempts < ((this.initializeParams.shutdownTimeout ?? 30) / DEFAULT_SHUTDOWN_RETRY_INTERVAL)) {
+      } else if (attempts < ((this.initializeParams.shutdownTimeoutMillis ?? 30000) / DEFAULT_SHUTDOWN_RETRY_INTERVAL)) {
         attempts++;
         setTimeout(attemptCleanup, DEFAULT_SHUTDOWN_RETRY_INTERVAL);
       } else {
         callback?.();
-        throw new PubSubClientCleanupTimeoutError(`Cleanup timed out after ${this.initializeParams.shutdownTimeout} seconds, forcing exit`);
+        throw new PubSubClientCleanupTimeoutError(`Cleanup timed out after ${this.initializeParams.shutdownTimeoutMillis} seconds, forcing exit`);
       }
     };
 
