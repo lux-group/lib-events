@@ -42,10 +42,16 @@ export class PubSubClientMessageError extends PubSubClientError {
   }
 }
 
+interface Credentials {
+  client_email: string;
+  private_key: string;
+}
+
 interface PubSubClientConfig {
   projectId: string;
   subscriptionName: string;
   topicName: string;
+  credentials?: Credentials;
 }
 
 /**
@@ -106,6 +112,7 @@ export class PubSubClient {
   constructor(private config: PubSubClientConfig) {
     this.pubSubClient = new PubSub({
       projectId: config.projectId,
+      credentials: config.credentials
     });
   }
 
@@ -122,10 +129,10 @@ export class PubSubClient {
 
     const topic = this.pubSubClient.topic(this.config.topicName);
 
-    // Create subscription if it doesn't exist
     this.subscription = topic.subscription(this.config.subscriptionName);
     const [exists] = await this.subscription.exists();
 
+    // Create subscription if it doesn't exist
     if (!exists) {
       await topic.createSubscription(this.config.subscriptionName);
     }
