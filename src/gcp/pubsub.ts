@@ -176,6 +176,11 @@ export class PubSubClient {
     return filterEvents.includes(value);
   };
 
+  /**
+   * Close the PubSub client and cleanup resources.
+   * @param callback - A callback from the service layer that will be called after cleanup. ex: () => process.exit(0)
+   * @private
+   */
   private async _cleanup(callback?: () => void): Promise<void> {
     let attempts = 0;
 
@@ -185,9 +190,11 @@ export class PubSubClient {
           this.subscription.removeAllListeners();
           await this.subscription.close();
           this.subscription = null;
-          callback?.();
+
         } catch (error) {
           throw new PubSubClientCleanupError('Error during cleanup', error as Error);
+        } finally {
+          callback?.();
         }
       } else if (!this.subscription) {
         callback?.();
@@ -195,6 +202,7 @@ export class PubSubClient {
         attempts++;
         setTimeout(attemptCleanup, 1000);
       } else {
+        callback?.();
         throw new PubSubClientCleanupTimeoutError(`Cleanup timed out after ${this.initializeParams.shutdownAttempts} seconds, forcing exit`);
       }
     };
