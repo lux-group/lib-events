@@ -150,7 +150,7 @@ export class PubSubClient {
           await onMessage(message);
           message.ack();
         } catch (error) {
-          logger('Failed to process event: ', {
+          logger('Failed to process event', {
             error,
             message
           });
