@@ -89,11 +89,6 @@ export class PubSubClient {
     }
   }
 
-  private _defaultDebugger = (message: DebugMessage) => {
-    const logger = this.initializeParams.logger ?? this._defaultLogger;
-    logger('Debug message received', { message });
-  }
-
   private _defaultLogger = (message: string, ...meta: any[]) => {
     console.info(message, meta);
   }
@@ -105,7 +100,6 @@ export class PubSubClient {
   private initializeParams: PubSubInitializeParams = {
     onMessage: async (message: Message) => { message.ack() },
     onError: this._defaultErrorHandler.bind(this),
-    onDebug: this._defaultDebugger.bind(this),
     shutdownTimeoutMillis: 30000,
     filterEvents: [],
     logger: this._defaultLogger.bind(this),
