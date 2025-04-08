@@ -54,45 +54,15 @@ interface Consumer {
   }) => Message;
 }
 
-interface PublisherParams {
-  accessKeyId: string;
-  secretAccessKey: string;
-  sessionToken?: string;
-  region: string;
-  topic: string;
-  apiHost: string;
-}
-
-interface Publisher {
-  dispatch: (message: Message) => Promise<void | PublishCommandOutput>;
-}
-
 interface ReceiveMessageParams {
   QueueUrl: string;
   MaxNumberOfMessages: number;
-}
-
-interface MessageAttribute {
-  DataType: string;
-  StringValue: string;
-}
-
-interface MessageAttributes {
-  type: MessageAttribute;
-  checksum: MessageAttribute;
-  source: MessageAttribute;
-  uri?: MessageAttribute;
-  id?: MessageAttribute;
-  json?: MessageAttribute;
 }
 
 interface PollParams {
   maxNumberOfMessages?: number;
   maxIterations?: number;
 }
-
-// Amazon SNS currently allows a maximum size of 256 KB for published messages.
-const MAX_EVENT_MESSAGE_SIZE = 256 * 1024;
 
 const DEFAULT_MAX_ITERATIONS = 10;
 
@@ -270,138 +240,6 @@ export class InvalidFIFOMessageError extends Error {
     this.name = this.constructor.name;
     Error.captureStackTrace(this, this.constructor);
   }
-}
-
-export function createPublisher({
-  accessKeyId,
-  secretAccessKey,
-  sessionToken,
-  region,
-  topic,
-  apiHost,
-}: PublisherParams): Publisher {
-  const credentials: Credentials = {
-    sessionToken,
-    accessKeyId,
-    secretAccessKey,
-  };
-
-  const sns = new SNSClient({ region, credentials });
-
-  const isFIFO = topic.endsWith(".fifo");
-
-  function dispatch({
-    type,
-    uri,
-    id,
-    checksum,
-    source,
-    message,
-    json,
-    groupId,
-    transactionId,
-  }: Message): Promise<void | PublishCommandOutput> {
-    if (!Object.values<string>(Events).includes(type)) {
-      throw new InvalidEventTypeError(`invalid event type '${type}'`);
-    }
-
-    if (isNaN(checksum)) {
-      throw new InvalidEventChecksumError("checksum is not a number");
-    }
-
-    if (!source) {
-      throw new InvalidEventSourceError("event source is required");
-    }
-
-    if (!message) {
-      throw new InvalidEventMessageError("event message is required");
-    }
-
-    if (isFIFO && !groupId) {
-      throw new InvalidFIFOMessageError(
-        "groupId is required for FIFO messages"
-      );
-    }
-
-    if (isFIFO && !transactionId) {
-      throw new InvalidFIFOMessageError(
-        "transactionId is required for FIFO messages"
-      );
-    }
-
-    const messageAttributes: MessageAttributes = {
-      type: {
-        DataType: "String",
-        StringValue: type,
-      },
-      checksum: {
-        DataType: "Number",
-        StringValue: checksum.toString(),
-      },
-      source: {
-        DataType: "String",
-        StringValue: source,
-      },
-    };
-
-    if (uri) {
-      messageAttributes.uri = {
-        DataType: "String",
-        StringValue: `${apiHost}${uri}`,
-      };
-    }
-
-    if (id) {
-      messageAttributes.id = {
-        DataType: "String",
-        StringValue: id,
-      };
-    }
-
-    if (json) {
-      try {
-        messageAttributes.json = {
-          DataType: "String",
-          StringValue: encodeJson<unknown>(json),
-        };
-      } catch (e) {
-        throw new InvalidEventJsonError("event json is invalid");
-      }
-    }
-
-    const eventParams: PublishCommandInput = {
-      MessageAttributes: { ...messageAttributes },
-      TopicArn: topic,
-      Message: message,
-    };
-
-    if (
-      Buffer.byteLength(JSON.stringify(eventParams), "utf8") >
-      MAX_EVENT_MESSAGE_SIZE
-    ) {
-      throw new InvalidEventSizeError("json message exceeded limit of 256KB");
-    }
-
-    if (groupId) {
-      eventParams.MessageGroupId = groupId;
-    }
-
-    if (transactionId) {
-      eventParams.MessageDeduplicationId = transactionId;
-    }
-
-    if (process.env.IGNORE_EVENTS == "true") {
-      return Promise.resolve();
-    }
-
-    const command = new PublishCommand(eventParams);
-
-    return sns.send(command);
-  }
-
-  return {
-    dispatch,
-  };
 }
 
 export function createConsumer({

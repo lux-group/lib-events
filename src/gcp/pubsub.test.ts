@@ -2,19 +2,19 @@ import { PubSub } from "@google-cloud/pubsub";
 import { PubSubClient } from "./pubsub";
 
 jest.mock("process", () => ({
-  exit: jest.fn()
+  exit: jest.fn(),
 }));
 jest.mock("./pubsub", () => ({
   ...jest.requireActual("./pubsub"),
-  _hasCurrentEvents: jest.fn().mockReturnValue(false)
+  _hasCurrentEvents: jest.fn().mockReturnValue(false),
 }));
 
 describe("PubSubClient", () => {
   let pubSubClient: PubSubClient;
   const mockConfig = {
     projectId: "test-project",
-    subscriptionName: "test-subscription", 
-    topicName: "test-topic"
+    subscriptionName: "test-subscription",
+    topicName: "test-topic",
   };
 
   beforeEach(() => {
@@ -37,12 +37,12 @@ describe("PubSubClient", () => {
         on: jest.fn(),
         removeAllListeners: jest.fn(),
         close: jest.fn(),
-        delete: jest.fn()
+        delete: jest.fn(),
       };
 
       const mockTopic = {
         subscription: jest.fn().mockReturnValue(mockSubscription),
-        createSubscription: jest.fn()
+        createSubscription: jest.fn(),
       };
 
       (PubSub.prototype as any).topic = jest.fn().mockReturnValue(mockTopic);
@@ -51,15 +51,29 @@ describe("PubSubClient", () => {
         onMessage: mockMessageHandler,
         onError: mockErrorHandler,
         onDebug: mockDebugHandler,
-        onClose: mockCloseHandler
+        onClose: mockCloseHandler,
       });
 
-      expect(mockTopic.subscription).toHaveBeenCalledWith(mockConfig.subscriptionName);
+      expect(mockTopic.subscription).toHaveBeenCalledWith(
+        mockConfig.subscriptionName
+      );
       expect(mockSubscription.exists).toHaveBeenCalled();
-      expect(mockSubscription.on).toHaveBeenCalledWith("message", expect.any(Function));
-      expect(mockSubscription.on).toHaveBeenCalledWith("error", expect.any(Function));
-      expect(mockSubscription.on).toHaveBeenCalledWith("debug", expect.any(Function));
-      expect(mockSubscription.on).toHaveBeenCalledWith("close", expect.any(Function));
+      expect(mockSubscription.on).toHaveBeenCalledWith(
+        "message",
+        expect.any(Function)
+      );
+      expect(mockSubscription.on).toHaveBeenCalledWith(
+        "error",
+        expect.any(Function)
+      );
+      expect(mockSubscription.on).toHaveBeenCalledWith(
+        "debug",
+        expect.any(Function)
+      );
+      expect(mockSubscription.on).toHaveBeenCalledWith(
+        "close",
+        expect.any(Function)
+      );
     });
 
     it("should create subscription if it doesn't exist", async () => {
@@ -68,12 +82,12 @@ describe("PubSubClient", () => {
         on: jest.fn(),
         removeAllListeners: jest.fn(),
         close: jest.fn(),
-        delete: jest.fn()
+        delete: jest.fn(),
       };
 
       const mockTopic = {
         subscription: jest.fn().mockReturnValue(mockSubscription),
-        createSubscription: jest.fn()
+        createSubscription: jest.fn(),
       };
 
       (PubSub.prototype as any).topic = jest.fn().mockReturnValue(mockTopic);
@@ -82,10 +96,12 @@ describe("PubSubClient", () => {
         onMessage: jest.fn(),
         onError: jest.fn(),
         onDebug: jest.fn(),
-        onClose: jest.fn()
+        onClose: jest.fn(),
       });
 
-      expect(mockTopic.createSubscription).toHaveBeenCalledWith(mockConfig.subscriptionName);
+      expect(mockTopic.createSubscription).toHaveBeenCalledWith(
+        mockConfig.subscriptionName
+      );
     });
 
     it("should throw an error if initialization fails", async () => {
@@ -94,20 +110,22 @@ describe("PubSubClient", () => {
         on: jest.fn(),
         removeAllListeners: jest.fn(),
         close: jest.fn(),
-        delete: jest.fn()
+        delete: jest.fn(),
       };
 
       const mockTopic = {
         subscription: jest.fn().mockReturnValue(mockSubscription),
-        createSubscription: jest.fn()
+        createSubscription: jest.fn(),
       };
 
       (PubSub.prototype as any).topic = jest.fn().mockReturnValue(mockTopic);
 
-      await expect(pubSubClient.initialize({
-        onMessage: jest.fn(),
-        onError: jest.fn()
-      })).rejects.toThrow("Initialization failed");
+      await expect(
+        pubSubClient.initialize({
+          onMessage: jest.fn(),
+          onError: jest.fn(),
+        })
+      ).rejects.toThrow("Initialization failed");
 
       expect(mockSubscription.exists).toHaveBeenCalled();
     });
@@ -120,12 +138,12 @@ describe("PubSubClient", () => {
         on: jest.fn(),
         removeAllListeners: jest.fn(),
         close: jest.fn(),
-        delete: jest.fn()
+        delete: jest.fn(),
       };
 
       const mockTopic = {
         subscription: jest.fn().mockReturnValue(mockSubscription),
-        createSubscription: jest.fn()
+        createSubscription: jest.fn(),
       };
 
       (PubSub.prototype as any).topic = jest.fn().mockReturnValue(mockTopic);
@@ -134,11 +152,11 @@ describe("PubSubClient", () => {
         onMessage: jest.fn(),
         onError: jest.fn(),
         onDebug: jest.fn(),
-        onClose: jest.fn()
+        onClose: jest.fn(),
       });
 
       await pubSubClient.close();
-  
+
       expect(mockSubscription.removeAllListeners).toHaveBeenCalled();
       expect(mockSubscription.close).toHaveBeenCalled();
     });
