@@ -1,11 +1,5 @@
 import { Credentials } from "@aws-sdk/types";
 import {
-  SNSClient,
-  PublishCommand,
-  PublishCommandInput,
-  PublishCommandOutput,
-} from "@aws-sdk/client-sns";
-import {
   SQSClient,
   DeleteMessageCommand,
   DeleteMessageCommandInput,
@@ -14,7 +8,7 @@ import {
   Message as SQSMessage,
 } from "@aws-sdk/client-sqs";
 
-import { encodeJson, decodeJson } from "./base64";
+import { decodeJson } from "./base64";
 
 export type Message<T = unknown> = {
   type: string;
@@ -413,3 +407,4 @@ export function createConsumer({
 }
 
 export * as pubsub from "./gcp/pubsub";
+export * from "./sns/publishers"

@@ -1,6 +1,6 @@
 {
   "name": "@luxuryescapes/lib-events",
-  "version": "4.0.0",
+  "version": "3.3.0",
   "description": "LE events",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
