@@ -1,4 +1,5 @@
-import { createConsumer, createPublisher, Events, Message } from "./index";
+import { createConsumer, Events, Message } from "./index";
+import { createPublisher } from "./sns/publishers";
 
 const accessKeyId = process.env.AWS_ACCESS_KEY_ID || "";
 

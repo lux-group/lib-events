@@ -1,11 +1,11 @@
 import {
   DebugMessage,
   Message,
-  PubSub, StatusError,
+  PubSub,
+  StatusError,
   Subscription,
 } from "@google-cloud/pubsub";
 import { AnalyticEvents } from "..";
-
 
 export class PubSubClientError extends Error {
   constructor(message: string, error?: Error) {
@@ -13,7 +13,7 @@ export class PubSubClientError extends Error {
     this.name = this.constructor.name;
     Error.captureStackTrace(this, this.constructor);
     if (error) {
-      this.stack = this.stack + '\nCaused by: ' + error.stack;
+      this.stack = this.stack + "\nCaused by: " + error.stack;
     }
   }
 }
@@ -74,31 +74,39 @@ const DEFAULT_SHUTDOWN_RETRY_INTERVAL = 1000; // 1 second
 export class PubSubClient {
   private _defaultErrorHandler = (error: StatusError) => {
     const logger = this.initializeParams.logger ?? this._defaultLogger;
-    if (error.code === 4) { // Deadline exceeded
-      logger('Deadline exceeded. Retrying...', { error });
-    } else if (error.code === 3){ // Unavailable
+    if (error.code === 4) {
+      // Deadline exceeded
+      logger("Deadline exceeded. Retrying...", { error });
+    } else if (error.code === 3) {
+      // Unavailable
       logger("Service unavailable. Retrying...", { error });
-    } else if (error.code === 5){ // Topic not found
+    } else if (error.code === 5) {
+      // Topic not found
       logger("Subscription or topic not found.", { error });
-    } else if (error.code === 7){ // Permission denied
+    } else if (error.code === 7) {
+      // Permission denied
       logger("Permission denied.", { error });
-    } else if (error.code === 9){ // Invalid argument
+    } else if (error.code === 9) {
+      // Invalid argument
       logger("Invalid argument.", { error });
-    } else { // Unhandled / Unknown error
+    } else {
+      // Unhandled / Unknown error
       logger("Unhandled error.", { error });
     }
-  }
+  };
 
   private _defaultLogger = (message: string, ...meta: any[]) => {
     console.info(message, meta);
-  }
+  };
 
   private pubSubClient: PubSub;
   private subscription: Subscription | null = null;
   private isProcessing = false;
   private isShuttingDown = false;
   private initializeParams: PubSubInitializeParams = {
-    onMessage: async (message: Message) => { message.ack() },
+    onMessage: async (message: Message) => {
+      message.ack();
+    },
     onError: this._defaultErrorHandler.bind(this),
     shutdownTimeoutMillis: 30000,
     filterEvents: [],
@@ -108,7 +116,7 @@ export class PubSubClient {
   constructor(private config: PubSubClientConfig) {
     this.pubSubClient = new PubSub({
       projectId: config.projectId,
-      credentials: config.credentials
+      credentials: config.credentials,
     });
   }
 
@@ -121,7 +129,8 @@ export class PubSubClient {
    */
   async initialize(params: PubSubInitializeParams): Promise<void> {
     this.initializeParams = { ...this.initializeParams, ...params };
-    const { onMessage, onError, onDebug, onClose, filterEvents } = this.initializeParams;
+    const { onMessage, onError, onDebug, onClose, filterEvents } =
+      this.initializeParams;
     const logger = this.initializeParams.logger ?? this._defaultLogger;
 
     const topic = this.pubSubClient.topic(this.config.topicName);
@@ -144,9 +153,9 @@ export class PubSubClient {
           await onMessage(message);
           message.ack();
         } catch (error) {
-          logger('Failed to process event', {
+          logger("Failed to process event", {
             error,
-            message
+            message,
           });
         }
       }
@@ -168,7 +177,10 @@ export class PubSubClient {
     }
   }
 
-  private _isValidEvent = (value: string, filterEvents?: string[]): value is AnalyticEvents => {
+  private _isValidEvent = (
+    value: string,
+    filterEvents?: string[]
+  ): value is AnalyticEvents => {
     //If no events were defined process everything
     if (!filterEvents?.length) {
       return true;
@@ -190,20 +202,28 @@ export class PubSubClient {
           this.subscription.removeAllListeners();
           await this.subscription.close();
           this.subscription = null;
-
         } catch (error) {
-          throw new PubSubClientCleanupError('Error during cleanup', error as Error);
+          throw new PubSubClientCleanupError(
+            "Error during cleanup",
+            error as Error
+          );
         } finally {
           callback?.();
         }
       } else if (!this.subscription) {
         callback?.();
-      } else if (attempts < ((this.initializeParams.shutdownTimeoutMillis ?? 30000) / DEFAULT_SHUTDOWN_RETRY_INTERVAL)) {
+      } else if (
+        attempts <
+        (this.initializeParams.shutdownTimeoutMillis ?? 30000) /
+          DEFAULT_SHUTDOWN_RETRY_INTERVAL
+      ) {
         attempts++;
         setTimeout(attemptCleanup, DEFAULT_SHUTDOWN_RETRY_INTERVAL);
       } else {
         callback?.();
-        throw new PubSubClientCleanupTimeoutError(`Cleanup timed out after ${this.initializeParams.shutdownTimeoutMillis} seconds, forcing exit`);
+        throw new PubSubClientCleanupTimeoutError(
+          `Cleanup timed out after ${this.initializeParams.shutdownTimeoutMillis} seconds, forcing exit`
+        );
       }
     };
 
