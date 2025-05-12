@@ -2,8 +2,6 @@ import { createConsumer } from "./index";
 
 import { encodeJson } from "./base64";
 
-
-
 const consumer = createConsumer({
   accessKeyId: "key",
   secretAccessKey: "secret",

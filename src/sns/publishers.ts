@@ -4,6 +4,7 @@ import {
   PublishCommandOutput,
   SNSClient,
 } from "@aws-sdk/client-sns";
+import { Credentials } from "@aws-sdk/types";
 import { encodeJson } from "../base64";
 import {
   Events,

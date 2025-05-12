@@ -24,8 +24,8 @@ export type Message<T = unknown> = {
 };
 
 interface ConsumerParams {
-  accessKeyId: string;
-  secretAccessKey: string;
+  accessKeyId?: string;
+  secretAccessKey?: string;
   sessionToken?: string;
   region: string;
   queueUrl: string;
@@ -246,13 +246,18 @@ export function createConsumer({
   region,
   queueUrl,
 }: ConsumerParams): Consumer {
-  const credentials: Credentials = {
-    sessionToken,
-    accessKeyId,
-    secretAccessKey,
-  };
+  const credentials  =
+    accessKeyId && secretAccessKey
+      ? {
+          credentials: {
+            sessionToken,
+            accessKeyId,
+            secretAccessKey,
+          },
+        }
+      : {};
 
-  const sqs = new SQSClient({ region, credentials });
+  const sqs = new SQSClient({ region, ...credentials });
 
   function deleteMessage(message: SQSMessage): () => Promise<void> {
     if (!message.ReceiptHandle) {
@@ -409,4 +414,4 @@ export function createConsumer({
 }
 
 export * as pubsub from "./gcp/pubsub";
-export * from "./sns/publishers"
+export * from "./sns/publishers";
