@@ -1,37 +1,42 @@
 import { createPublisher, Publisher } from "./publishers";
-import { Events, InvalidEventTypeError, InvalidFIFOMessageError } from "../index";
+import {
+  Events,
+  InvalidEventTypeError,
+  InvalidFIFOMessageError,
+} from "../index";
 import { SNSClient } from "@aws-sdk/client-sns";
 
 jest.mock("@aws-sdk/client-sns");
 
 describe("publishers", () => {
-
   describe("client creation", () => {
-    let mockSns!: jest.MockedClass<typeof SNSClient>
+    let mockSns!: jest.MockedClass<typeof SNSClient>;
     const commonCreateParams = {
       region: "ap-southeast-2",
       topic: "my-sns-topic",
       apiHost: "https://our-api.com",
-    }
+    };
 
     beforeEach(() => {
-      mockSns = SNSClient as jest.MockedClass<typeof SNSClient>
-    })
+      mockSns = SNSClient as jest.MockedClass<typeof SNSClient>;
+    });
 
     it("should use the credentials supplied when creating the SNS client", () => {
       createPublisher({
         accessKeyId: "key",
         secretAccessKey: "secret",
-        ...commonCreateParams
+        ...commonCreateParams,
       });
 
-      expect(mockSns.prototype.constructor).toHaveBeenCalledWith(expect.objectContaining({
-        region: "ap-southeast-2",
-        credentials: {
-          accessKeyId: "key",
-          secretAccessKey: "secret"
-        }
-      }))
+      expect(mockSns.prototype.constructor).toHaveBeenCalledWith(
+        expect.objectContaining({
+          region: "ap-southeast-2",
+          credentials: {
+            accessKeyId: "key",
+            secretAccessKey: "secret",
+          },
+        })
+      );
     });
 
     it("should use the session token when supplied", () => {
@@ -39,43 +44,51 @@ describe("publishers", () => {
         accessKeyId: "key",
         secretAccessKey: "secret",
         sessionToken: "sessionToken",
-        ...commonCreateParams
+        ...commonCreateParams,
       });
 
-      expect(mockSns.prototype.constructor).toHaveBeenCalledWith(expect.objectContaining({
-        credentials: expect.objectContaining({sessionToken: "sessionToken"}),
-      }))
+      expect(mockSns.prototype.constructor).toHaveBeenCalledWith(
+        expect.objectContaining({
+          credentials: expect.objectContaining({
+            sessionToken: "sessionToken",
+          }),
+        })
+      );
     });
 
     it("should not pass the credentials when access key id is missing", () => {
       createPublisher({
         secretAccessKey: "secret",
-        ...commonCreateParams
+        ...commonCreateParams,
       });
 
-      expect(mockSns.prototype.constructor).toHaveBeenCalledWith(expect.not.objectContaining({
-        credentials: expect.anything()
-      }))
+      expect(mockSns.prototype.constructor).toHaveBeenCalledWith(
+        expect.not.objectContaining({
+          credentials: expect.anything(),
+        })
+      );
     });
 
     it("should not pass the credentials when access key secret is missing", () => {
       createPublisher({
         accessKeyId: "key",
-        ...commonCreateParams
+        ...commonCreateParams,
       });
 
-      expect(mockSns.prototype.constructor).toHaveBeenCalledWith(expect.not.objectContaining({
-        credentials: expect.anything()
-      }))
+      expect(mockSns.prototype.constructor).toHaveBeenCalledWith(
+        expect.not.objectContaining({
+          credentials: expect.anything(),
+        })
+      );
     });
   });
 
   describe("dispatcher", () => {
-    let publisher!: Publisher
-    let publisherFIFO!: Publisher
+    let publisher!: Publisher;
+    let publisherFIFO!: Publisher;
 
     beforeEach(() => {
-      jest.resetAllMocks()
+      jest.resetAllMocks();
 
       publisher = createPublisher({
         accessKeyId: "key",
@@ -92,7 +105,6 @@ describe("publishers", () => {
         topic: "my-sns-topic.fifo",
         apiHost: "https://our-api.com",
       });
-
     });
 
     it("should throw error if invalid type", function () {
