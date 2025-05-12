@@ -172,7 +172,7 @@ export function createPublisher({
   topic,
   apiHost,
 }: PublisherParams): Publisher {
-  const credentials: Credentials =
+  const credentials =
     accessKeyId && secretAccessKey
       ? {
           credentials: {

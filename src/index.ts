@@ -246,7 +246,7 @@ export function createConsumer({
   region,
   queueUrl,
 }: ConsumerParams): Consumer {
-  const credentials: Credentials =
+  const credentials  =
     accessKeyId && secretAccessKey
       ? {
           credentials: {
