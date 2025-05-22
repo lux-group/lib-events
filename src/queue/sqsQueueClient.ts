@@ -103,10 +103,7 @@ export class SqsQueueClient implements QueueClient {
         MessageBody: JSON.stringify(message.body),
         MessageAttributes: {
           ...this.mapAttributesToSqsMessageAttributes(message.attributes),
-          type: {
-            StringValue: message.type,
-            DataType: "String",
-          },
+          ...this.formatMessageType(message.type),
         },
       })),
     });
@@ -127,6 +124,19 @@ export class SqsQueueClient implements QueueClient {
         setTimeout(resolve, this.longPollDurationSeconds * 1000)
       );
     }
+  }
+
+  private formatMessageType(
+    messageType: string
+  ): Record<string, MessageAttributeValue> {
+    return messageType
+      ? {
+          type: {
+            StringValue: messageType,
+            DataType: "String",
+          },
+        }
+      : {};
   }
 
   private deleteSqsMessage(message: SqsMessage): Promise<void> {
@@ -182,18 +192,43 @@ export class SqsQueueClient implements QueueClient {
       .reduce((acc, curr) => ({ ...acc, ...curr }), {});
   }
 
-  private mapSqsMessageToInternalMessage(
+  private async mapSqsMessageToInternalMessage(
     message: SqsMessage
   ): Promise<Message<MessageAttributes, unknown>> {
-    // TODO: Handle SNS messages where the message attributes and body are
-    // wrapped in another object that is shoved into the SQS body
-    return Promise.resolve({
+    const messageBody = JSON.parse(message.Body ?? "{}") as Record<
+      string,
+      unknown
+    >;
+
+    // Checking if the message came from an SNS notification
+    if (
+      !message.MessageAttributes?.Type &&
+      messageBody?.Type === "Notification"
+    ) {
+      const snsMessage = messageBody as {
+        Message: string;
+        MessageAttributes: Record<string, { Type: string; Value: unknown }>;
+      };
+      return {
+        type:
+          (snsMessage.MessageAttributes?.type?.Value as string) ?? "UNKNOWN",
+        attributes: Object.entries(snsMessage.MessageAttributes ?? {})
+          .map(([key, value]) => this.mapSnsAttributeToRecord(key, value))
+          .reduce(
+            (acc, curr) => ({ ...acc, ...curr }),
+            {}
+          ) as MessageAttributes,
+        body: JSON.parse(snsMessage.Message ?? "{}"),
+      };
+    }
+
+    return {
       type: message.MessageAttributes?.type?.StringValue ?? "UNKNOWN",
       attributes: Object.entries(message.MessageAttributes ?? {})
         .map(([key, value]) => this.mapSqsAttributeToRecord(key, value))
         .reduce((acc, curr) => ({ ...acc, ...curr }), {}) as MessageAttributes,
       body: JSON.parse(message.Body ?? "{}"),
-    });
+    };
   }
 
   private mapSqsAttributeToRecord(
@@ -209,6 +244,24 @@ export class SqsQueueClient implements QueueClient {
       resolvedValue = JSON.parse(new TextDecoder().decode(value.BinaryValue));
     } else {
       throw new Error(`Unsupported data type: ${value.DataType}`);
+    }
+
+    return { [key]: resolvedValue };
+  }
+
+  private mapSnsAttributeToRecord(
+    key: string,
+    value: { Type: string; Value: unknown }
+  ): MessageAttributes {
+    let resolvedValue;
+    if (value.Type === "String") {
+      resolvedValue = value.Value as string;
+    } else if (value.Type === "Number") {
+      resolvedValue = Number(value.Value);
+    } else if (value.Type === "Binary") {
+      resolvedValue = {} // TODO: Deal with this
+    } else {
+      throw new Error(`Unsupported data type: ${JSON.stringify(value)}`);
     }
 
     return { [key]: resolvedValue };
