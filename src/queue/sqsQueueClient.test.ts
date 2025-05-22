@@ -2,6 +2,7 @@ import { GenericContainer, StartedTestContainer } from "testcontainers";
 import { CreateQueueCommand, SQS } from "@aws-sdk/client-sqs";
 import { SqsQueueClient } from "./sqsQueueClient";
 import { MessageAttributes, MessageHandler } from "./queueClient";
+import { Message } from "../index";
 
 describe("SqsQueueClient", () => {
   jest.setTimeout(30_000);
@@ -40,7 +41,7 @@ describe("SqsQueueClient", () => {
       "keyId",
       "accessKey"
     );
-  })
+  });
 
   afterEach(async () => {
     jest.clearAllMocks();
@@ -218,7 +219,7 @@ describe("SqsQueueClient", () => {
       >["validateMessage"],
     };
 
-    const testMessage = {
+    const testSqsMessage = {
       type: "TestMessageType",
       attributes: {
         foo: "bar",
@@ -226,6 +227,26 @@ describe("SqsQueueClient", () => {
       body: {
         payload: "test",
       },
+    };
+
+    const testSnsMessage = {
+      type: "",
+      body: {
+        Type: 'Notification',
+        MessageId: 'test-message-id3',
+        TopicArn: 'arn:aws:sns:ap-southeast-2:278322397543:bla',
+        Message: JSON.stringify(testSqsMessage.body),
+        Timestamp: '2025-05-08T23:12:15.979Z',
+        SignatureVersion: '1',
+        Signature: 'signature',
+        SigningCertURL: 'cert-url',
+        UnsubscribeURL: 'unsub-url',
+        MessageAttributes: {
+          foo: { Type: 'String', Value: testSqsMessage.attributes.foo },
+          type: { Type: 'String', Value: testSqsMessage.type },
+        },
+      },
+      attributes: {},
     };
 
     beforeEach(() => {
@@ -236,55 +257,61 @@ describe("SqsQueueClient", () => {
       sqsQueueClient.registerMessageHandler(testMessageHandler);
     });
 
-    it("should process messages", async () => {
-      await sqsQueueClient.sendMessages(testMessage);
-      await sqsQueueClient["pollOnceForMessages"]();
+    it.each([
+      ["SQS", testSqsMessage],
+      ["SNS", testSnsMessage],
+    ])(
+      "should process messages from %s",
+      async (_, message) => {
+        await sqsQueueClient.sendMessages(message);
+        await sqsQueueClient["pollOnceForMessages"]();
 
-      expect(testMessageHandler.validateMessage).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: "TestMessageType",
-          attributes: {
+        expect(testMessageHandler.validateMessage).toHaveBeenCalledWith(
+          expect.objectContaining({
             type: "TestMessageType",
-            foo: "bar",
-          },
-          body: {
-            payload: "test",
-          },
-        })
-      );
-      expect(testMessageHandler.handleMessage).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: "TestMessageType",
-          attributes: {
-            type: "TestMessageType",
-            foo: "bar",
-          },
-          body: {
-            payload: "test",
-          },
-        })
-      );
-
-      expect(innerClientDeleteSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          QueueUrl: queueUrl,
-          ReceiptHandle: expect.anything(),
-        })
-      );
-      expect(
-        (
-          await testSqsClient.receiveMessage({
-            QueueUrl: queueUrl,
-            MaxNumberOfMessages: 1,
+            attributes: {
+              type: "TestMessageType",
+              foo: "bar",
+            },
+            body: {
+              payload: "test",
+            },
           })
-        ).Messages
-      ).toHaveLength(0);
-    });
+        );
+        expect(testMessageHandler.handleMessage).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: "TestMessageType",
+            attributes: {
+              type: "TestMessageType",
+              foo: "bar",
+            },
+            body: {
+              payload: "test",
+            },
+          })
+        );
+
+        expect(innerClientDeleteSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            QueueUrl: queueUrl,
+            ReceiptHandle: expect.anything(),
+          })
+        );
+        expect(
+          (
+            await testSqsClient.receiveMessage({
+              QueueUrl: queueUrl,
+              MaxNumberOfMessages: 1,
+            })
+          ).Messages
+        ).toHaveLength(0);
+      }
+    );
 
     it("should not delete failing messages", async () => {
       (testMessageHandler.handleMessage as jest.Mock).mockRejectedValue("fail");
 
-      await sqsQueueClient.sendMessages(testMessage, {
+      await sqsQueueClient.sendMessages(testSqsMessage, {
         type: "unknown-message-type",
         attributes: {} as MessageAttributes,
         body: "This body is a string",
