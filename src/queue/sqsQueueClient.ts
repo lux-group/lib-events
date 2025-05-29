@@ -10,6 +10,8 @@ import {
   SQS,
 } from "@aws-sdk/client-sqs";
 import { MessageAttributeValue } from "@aws-sdk/client-sqs/dist-types/models/models_0";
+import { createContextualLogger } from "@luxuryescapes/lib-logger";
+import { Logger } from "@luxuryescapes/lib-logger/lib/types";
 
 const dataTypeMap: Record<string, string> = {
   string: "String",
@@ -27,20 +29,29 @@ export class SqsQueueClient implements QueueClient {
   private readonly longPollDurationSeconds: number;
   private readonly maxNumberOfMessages: number;
   private readonly visibilityTimeoutSeconds: number;
+  private readonly logger: Logger;
 
-  private readonly messageHandlers: Map<
-    string,
-    MessageHandler<MessageAttributes, unknown>
-  >;
+  private readonly messageHandlers: Map<string, MessageHandler<unknown>>;
 
   constructor(
     queueUrl: string,
-    longPollDurationSeconds: number = DEFAULT_LONG_POLL_DURATION_SECONDS,
-    maxNumberOfMessages: number = DEFAULT_MAX_NUMBER_OF_MESSAGES,
-    visibilityTimeoutSeconds: number = DEFAULT_VISIBILITY_TIMEOUT_SECONDS,
-    region?: string,
-    accessKeyId?: string,
-    secretAccessKey?: string
+    {
+      longPollDurationSeconds,
+      maxNumberOfMessages,
+      visibilityTimeoutSeconds,
+      region,
+      accessKeyId,
+      secretAccessKey,
+      logger,
+    }: {
+      longPollDurationSeconds?: number;
+      maxNumberOfMessages?: number;
+      visibilityTimeoutSeconds?: number;
+      accessKeyId?: string;
+      region?: string;
+      secretAccessKey?: string;
+      logger?: Logger;
+    }
   ) {
     if (region && accessKeyId && secretAccessKey) {
       this.client = new SQS({
@@ -56,10 +67,21 @@ export class SqsQueueClient implements QueueClient {
     }
 
     this.queueUrl = queueUrl;
-    this.longPollDurationSeconds = longPollDurationSeconds;
-    this.maxNumberOfMessages = maxNumberOfMessages;
-    this.visibilityTimeoutSeconds = visibilityTimeoutSeconds;
+    this.longPollDurationSeconds =
+      longPollDurationSeconds ?? DEFAULT_LONG_POLL_DURATION_SECONDS;
+    this.maxNumberOfMessages =
+      maxNumberOfMessages ?? DEFAULT_MAX_NUMBER_OF_MESSAGES;
+    this.visibilityTimeoutSeconds =
+      visibilityTimeoutSeconds ?? DEFAULT_VISIBILITY_TIMEOUT_SECONDS;
     this.messageHandlers = new Map();
+    this.logger = (
+      logger ??
+      createContextualLogger({
+        logLevel: "info",
+        service: "Sqs client",
+        env: process.env.APP_ENV ?? "spec",
+      })
+    ).child({ queueUrl });
   }
 
   async health(): Promise<boolean> {
@@ -70,14 +92,17 @@ export class SqsQueueClient implements QueueClient {
       });
       return !!response.Attributes?.QueueArn;
     } catch (error) {
-      console.error("SQS health check failed:", error);
-      return Promise.reject(`SQS health check failed: ${error}`);
+      this.logger.error("SQS health check failed:", error);
+      return Promise.reject(
+        new Error(`SQS health check failed: ${JSON.stringify(error)}`)
+      );
     }
   }
 
-  registerMessageHandler<Attributes extends MessageAttributes, Body>(
-    handler: MessageHandler<Attributes, Body>
-  ) {
+  registerMessageHandler<
+    Body,
+    Attributes extends MessageAttributes = MessageAttributes
+  >(handler: MessageHandler<Body, Attributes>) {
     if (this.messageHandlers.has(handler.type)) {
       throw new Error(
         `Message handler for type ${handler.type} already exists`
@@ -86,12 +111,12 @@ export class SqsQueueClient implements QueueClient {
 
     this.messageHandlers.set(
       handler.type,
-      handler as unknown as MessageHandler<MessageAttributes, unknown>
+      handler as unknown as MessageHandler<unknown>
     );
   }
 
   async sendMessages(
-    ...messages: (Message<MessageAttributes, unknown> & {
+    ...messages: (Message<unknown> & {
       delaySeconds?: number;
     })[]
   ): Promise<void> {
@@ -101,6 +126,8 @@ export class SqsQueueClient implements QueueClient {
         Id: index.toString(),
         DelaySeconds: message.delaySeconds ?? 0,
         MessageBody: JSON.stringify(message.body),
+        MessageGroupId: message.messageGroupId?.toString(),
+        MessageDeduplicationId: message.messageDeduplicationId?.toString(),
         MessageAttributes: {
           ...this.mapAttributesToSqsMessageAttributes(message.attributes),
           ...this.formatMessageType(message.type),
@@ -118,11 +145,48 @@ export class SqsQueueClient implements QueueClient {
     // eslint-disable-next-line no-constant-condition
     while (true) {
       await this.pollOnceForMessages();
+    }
+  }
 
-      // Small delay to prevent hot-looping
-      await new Promise((resolve) =>
-        setTimeout(resolve, this.longPollDurationSeconds * 1000)
-      );
+  /**
+   * This method polls once for messages and processes then.
+   */
+  async pollOnceForMessages(): Promise<void> {
+    try {
+      const command = new ReceiveMessageCommand({
+        QueueUrl: this.queueUrl,
+        MaxNumberOfMessages: this.maxNumberOfMessages,
+        WaitTimeSeconds: this.longPollDurationSeconds,
+        VisibilityTimeout: this.visibilityTimeoutSeconds,
+        MessageAttributeNames: ["All"],
+      });
+      const receivedMessages = await this.client.send(command);
+
+      const messageHandlerPromises =
+        receivedMessages.Messages?.map(async (message) => {
+          try {
+            const mappedMessage = this.mapSqsMessageToInternalMessage(message);
+            const { handler } = await this.handleMessage(mappedMessage);
+            await this.deleteSqsMessage(message, handler.type);
+          } catch (error) {
+            this.logger.error("Error processing message. Skipping delete.", {
+              error: {
+                message: (error as Error).message,
+                stack: (error as Error).stack,
+              },
+              sqsMessage: message,
+            });
+          }
+        }) ?? [];
+
+      await Promise.all(messageHandlerPromises);
+    } catch (error) {
+      this.logger.error("Error polling messages. Skipping and retrying.", {
+        error: {
+          message: (error as Error).message,
+          stack: (error as Error).stack,
+        },
+      });
     }
   }
 
@@ -139,7 +203,13 @@ export class SqsQueueClient implements QueueClient {
       : {};
   }
 
-  private deleteSqsMessage(message: SqsMessage): Promise<void> {
+  private deleteSqsMessage(
+    message: SqsMessage,
+    messageType: string
+  ): Promise<void> {
+    this.logger.info("Deleted message from SQS", {
+      messageType,
+    });
     return message.ReceiptHandle
       ? this.client
           .deleteMessage({
@@ -152,11 +222,19 @@ export class SqsQueueClient implements QueueClient {
       : Promise.resolve();
   }
 
-  private handleMessage<Attributes extends MessageAttributes, Body>(
-    message: Message<Attributes, Body>
-  ): Promise<void> {
+  private async handleMessage<
+    Body,
+    Attributes extends MessageAttributes = MessageAttributes
+  >(
+    message: Message<Body, Attributes>
+  ): Promise<{
+    message: Message<Body, Attributes>;
+    handler: MessageHandler<Body, Attributes>;
+  }> {
     // Find the message handler
-    const handler = this.messageHandlers.get(message.type);
+    const handler = this.messageHandlers.get(message.type) as
+      | MessageHandler<Body, Attributes>
+      | undefined;
     if (!handler) {
       throw new Error(`No handler found for message type ${message.type}`);
     }
@@ -166,8 +244,14 @@ export class SqsQueueClient implements QueueClient {
       throw new Error(`Invalid message: ${JSON.stringify(message)}`);
     }
 
+    this.logger.info(`Processing message from queue`, {
+      handler: handler.type,
+      sqsMessage: message,
+    });
+
     // Process the message
-    return handler.handleMessage(message);
+    await handler.handleMessage(message);
+    return { message, handler };
   }
 
   private mapAttributesToSqsMessageAttributes(
@@ -185,16 +269,17 @@ export class SqsQueueClient implements QueueClient {
                       JSON.stringify(value)
                     ),
                   }
-                : { StringValue: value.toString() }),
+                : // eslint-disable-next-line @typescript-eslint/no-base-to-string
+                  { StringValue: value.toString() }),
             },
           } as Record<string, MessageAttributeValue>)
       )
       .reduce((acc, curr) => ({ ...acc, ...curr }), {});
   }
 
-  private async mapSqsMessageToInternalMessage(
+  private mapSqsMessageToInternalMessage(
     message: SqsMessage
-  ): Promise<Message<MessageAttributes, unknown>> {
+  ): Message<unknown> {
     const messageBody = JSON.parse(message.Body ?? "{}") as Record<
       string,
       unknown
@@ -214,10 +299,7 @@ export class SqsQueueClient implements QueueClient {
           (snsMessage.MessageAttributes?.type?.Value as string) ?? "UNKNOWN",
         attributes: Object.entries(snsMessage.MessageAttributes ?? {})
           .map(([key, value]) => this.mapSnsAttributeToRecord(key, value))
-          .reduce(
-            (acc, curr) => ({ ...acc, ...curr }),
-            {}
-          ) as MessageAttributes,
+          .reduce((acc, curr) => ({ ...acc, ...curr }), {}),
         body: JSON.parse(snsMessage.Message ?? "{}"),
       };
     }
@@ -226,7 +308,7 @@ export class SqsQueueClient implements QueueClient {
       type: message.MessageAttributes?.type?.StringValue ?? "UNKNOWN",
       attributes: Object.entries(message.MessageAttributes ?? {})
         .map(([key, value]) => this.mapSqsAttributeToRecord(key, value))
-        .reduce((acc, curr) => ({ ...acc, ...curr }), {}) as MessageAttributes,
+        .reduce((acc, curr) => ({ ...acc, ...curr }), {}),
       body: JSON.parse(message.Body ?? "{}"),
     };
   }
@@ -235,13 +317,15 @@ export class SqsQueueClient implements QueueClient {
     key: string,
     value: MessageAttributeValue
   ): MessageAttributes {
-    let resolvedValue;
+    let resolvedValue: string | number | object;
     if (value.DataType === "String") {
-      resolvedValue = value.StringValue;
+      resolvedValue = value.StringValue ?? "";
     } else if (value.DataType === "Number") {
       resolvedValue = Number(value.StringValue);
     } else if (value.DataType === "Binary") {
-      resolvedValue = JSON.parse(new TextDecoder().decode(value.BinaryValue));
+      resolvedValue = JSON.parse(
+        new TextDecoder().decode(value.BinaryValue)
+      ) as object;
     } else {
       throw new Error(`Unsupported data type: ${value.DataType}`);
     }
@@ -259,51 +343,11 @@ export class SqsQueueClient implements QueueClient {
     } else if (value.Type === "Number") {
       resolvedValue = Number(value.Value);
     } else if (value.Type === "Binary") {
-      resolvedValue = {} // TODO: Deal with this
+      resolvedValue = {}; // TODO: Deal with this
     } else {
       throw new Error(`Unsupported data type: ${JSON.stringify(value)}`);
     }
 
     return { [key]: resolvedValue };
-  }
-
-  /**
-   * This method polls once for messages and processes then.
-   * @private This message can be used in tests to avoid needing to work with
-   * the infinite loop.
-   */
-  private async pollOnceForMessages(): Promise<void> {
-    try {
-      const command = new ReceiveMessageCommand({
-        QueueUrl: this.queueUrl,
-        MaxNumberOfMessages: this.maxNumberOfMessages,
-        WaitTimeSeconds: this.longPollDurationSeconds,
-        VisibilityTimeout: this.visibilityTimeoutSeconds,
-        MessageAttributeNames: ["All"],
-      });
-      const receivedMessages = await this.client.send(command);
-
-      const messageHandlerPromises =
-        receivedMessages.Messages?.map((message) =>
-          this.mapSqsMessageToInternalMessage(message)
-            .then((message) => this.handleMessage(message))
-            .then(() => this.deleteSqsMessage(message))
-            .catch(() => {
-              console.error("Error processing message. Skipping delete.", {});
-            })
-        ) ?? [];
-
-      await Promise.all(messageHandlerPromises);
-    } catch (error) {
-      console.error(
-        "Error polling/processing messages. Skipping and retrying.",
-        {
-          error: {
-            message: (error as Error).message,
-            stack: (error as Error).stack,
-          },
-        }
-      );
-    }
   }
 }
