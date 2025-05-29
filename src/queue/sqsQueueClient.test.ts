@@ -69,23 +69,31 @@ describe("SqsQueueClient", () => {
   });
 
   afterAll(async () => {
+    await testSqsClient.deleteQueue({ QueueUrl: queueUrl });
+    await testFifoClient.deleteQueue({ QueueUrl: fifoUrl });
     container ? await container.stop() : undefined;
   });
 
   const startElasticMq = async () => {
-    container = await new GenericContainer("softwaremill/elasticmq-native")
-      .withExposedPorts(9324)
-      .start();
+    let elasticMqEndpoint: string;
 
-    const host = container.getHost();
-    const port = container.getMappedPort(9324);
-    const containerEndpoint = `http://${host}:${port}`;
+    if (!process.env.ELASTIC_MQ_URL) {
+      container = await new GenericContainer("softwaremill/elasticmq-native")
+        .withExposedPorts(9324)
+        .start();
 
-    console.log(`ElasticMQ started at ${containerEndpoint}`);
+      const host = container.getHost();
+      const port = container.getMappedPort(9324);
+      elasticMqEndpoint = `http://${host}:${port}`;
+    } else {
+      elasticMqEndpoint = process.env.ELASTIC_MQ_URL;
+    }
+
+    console.log(`ElasticMQ running at ${elasticMqEndpoint}`);
 
     const sqsClient = new SQS({
       region: "ap-southeast-2",
-      endpoint: containerEndpoint,
+      endpoint: elasticMqEndpoint,
       credentials: {
         accessKeyId: "",
         secretAccessKey: "",
@@ -113,8 +121,8 @@ describe("SqsQueueClient", () => {
     );
 
     return {
-      queueUrl: `${containerEndpoint}/queue/testQueue`,
-      fifoUrl: `${containerEndpoint}/queue/fifoQueue.fifo`,
+      queueUrl: `${elasticMqEndpoint}/queue/testQueue`,
+      fifoUrl: `${elasticMqEndpoint}/queue/fifoQueue.fifo`,
     };
   };
 
