@@ -9,6 +9,7 @@
     "lint": "eslint src --ext .js,.ts",
     "lint:fix": "eslint src --ext .js,.ts --fix && prettier -w src",
     "test": "jest",
+    "test:coverage": "jest --coverage",
     "integration": "ts-node src/integration"
   },
   "author": "",
