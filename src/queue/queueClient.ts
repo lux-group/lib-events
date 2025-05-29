@@ -8,7 +8,10 @@ export type MessageAttributes = Record<string, string | number | object>;
  * @typeParam {Attributes} Additional metadata associated with the message.
  * @typeParam {Body} The body of the message.
  */
-export type Message<Attributes extends MessageAttributes, Body> = {
+export type Message<
+  Body,
+  Attributes extends MessageAttributes = MessageAttributes
+> = {
   /**
    * The message type. Used to find the associated message handler.
    */
@@ -21,12 +24,28 @@ export type Message<Attributes extends MessageAttributes, Body> = {
    * Body of the message.
    */
   body: Body;
+
+  /**
+   * The message group id used as the partitioning key for FIFO queues.
+   * Optional. Used for FIFO queues.
+   */
+  messageGroupId?: string;
+
+  /**
+   * Message deduplication id, used for message deduplication when content-based
+   * deduplication is disabled or overridden. Used for FIFO queues.
+   * Optional. Used for manual de-duplication in FIFO queues.
+   */
+  messageDeduplicationId?: string;
 };
 
 /**
  * A handler for a given message type to action a message of that type.
  */
-export interface MessageHandler<Attributes extends MessageAttributes, Body> {
+export interface MessageHandler<
+  Body,
+  Attributes extends MessageAttributes = MessageAttributes
+> {
   /**
    * Type of messages to handle.
    */
@@ -36,12 +55,14 @@ export interface MessageHandler<Attributes extends MessageAttributes, Body> {
    * @param message The message object with the matching type.
    *   It is possible that the type will be repeated in the attributes.
    */
-  handleMessage: (message: Message<Attributes, Body>) => Promise<void>;
+  handleMessage: (message: Message<Body, Attributes>) => Promise<void>;
   /**
    * A function to validate that the message serialised from the message queue is of the expected type.
    * @param message A message with unknown attributes and body that needs to be validated.
    */
-  validateMessage: (message: Message<MessageAttributes, unknown>) => message is Message<Attributes, Body>;
+  validateMessage: (
+    message: Message<unknown>
+  ) => message is Message<Body, Attributes>;
 }
 
 /**
@@ -59,8 +80,11 @@ export interface QueueClient {
    * @param handler A message handler.
    * @throws Error if a message handler with a given type has already been registered.
    */
-  registerMessageHandler: <Attributes extends MessageAttributes, Body>(
-    handler: MessageHandler<Attributes, Body>
+  registerMessageHandler: <
+    Body,
+    Attributes extends MessageAttributes = MessageAttributes
+  >(
+    handler: MessageHandler<Body, Attributes>
   ) => void;
 
   /**
@@ -73,7 +97,7 @@ export interface QueueClient {
    * @param messages A message (with an optional delay) to be added to the queue.
    */
   sendMessages: (
-    ...messages: (Message<MessageAttributes, unknown> & {
+    ...messages: (Message<unknown> & {
       delaySeconds?: number;
     })[]
   ) => Promise<void>;

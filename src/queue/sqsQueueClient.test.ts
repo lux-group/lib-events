@@ -2,23 +2,25 @@ import { GenericContainer, StartedTestContainer } from "testcontainers";
 import { CreateQueueCommand, SQS } from "@aws-sdk/client-sqs";
 import { SqsQueueClient } from "./sqsQueueClient";
 import { MessageAttributes, MessageHandler } from "./queueClient";
-import { Message } from "../index";
 
 describe("SqsQueueClient", () => {
   jest.setTimeout(30_000);
 
   let container: StartedTestContainer;
   let queueUrl: string;
+  let fifoUrl: string;
 
   let testSqsClient: SQS;
+  let testFifoClient: SQS;
 
   let sqsQueueClient: SqsQueueClient;
+  let fifoQueueClient: SqsQueueClient;
 
   beforeAll(async () => {
     queueUrl = process.env.SQS_QUEUE_URL || "";
 
     if (!queueUrl) {
-      queueUrl = await startElasticMq();
+      ({ queueUrl, fifoUrl } = await startElasticMq());
     }
 
     testSqsClient = new SQS({
@@ -29,23 +31,41 @@ describe("SqsQueueClient", () => {
         secretAccessKey: "",
       },
     });
+
+    testFifoClient = new SQS({
+      region: "ap-southeast-2",
+      endpoint: fifoUrl,
+      credentials: {
+        accessKeyId: "",
+        secretAccessKey: "",
+      },
+    });
   });
 
   beforeEach(() => {
-    sqsQueueClient = new SqsQueueClient(
-      queueUrl,
-      1,
-      10,
-      5,
-      "ap-southeast-2",
-      "keyId",
-      "accessKey"
-    );
+    sqsQueueClient = new SqsQueueClient(queueUrl, {
+      longPollDurationSeconds: 1,
+      maxNumberOfMessages: 10,
+      visibilityTimeoutSeconds: 5,
+      region: "ap-southeast-2",
+      accessKeyId: "keyId",
+      secretAccessKey: "accessKey",
+    });
+
+    fifoQueueClient = new SqsQueueClient(fifoUrl, {
+      longPollDurationSeconds: 1,
+      maxNumberOfMessages: 10,
+      visibilityTimeoutSeconds: 5,
+      region: "ap-southeast-2",
+      accessKeyId: "keyId",
+      secretAccessKey: "accessKey",
+    });
   });
 
   afterEach(async () => {
     jest.clearAllMocks();
     await testSqsClient.purgeQueue({ QueueUrl: queueUrl });
+    await testFifoClient.purgeQueue({ QueueUrl: fifoUrl });
   });
 
   afterAll(async () => {
@@ -81,25 +101,35 @@ describe("SqsQueueClient", () => {
       })
     );
 
-    return `${containerEndpoint}/queue/testQueue`;
+    await sqsClient.send(
+      new CreateQueueCommand({
+        QueueName: "fifoQueue.fifo",
+        Attributes: {
+          VisibilityTimeout: "5",
+          FifoQueue: "true",
+          ContentBasedDeduplication: "true",
+        },
+      })
+    );
+
+    return {
+      queueUrl: `${containerEndpoint}/queue/testQueue`,
+      fifoUrl: `${containerEndpoint}/queue/fifoQueue.fifo`,
+    };
   };
 
   describe("Health", () => {
     it("should report the health correctly when the queue is up", async () => {
-      console.log("Queue URL: ", queueUrl);
       expect(await sqsQueueClient.health()).toBe(true);
+      expect(await fifoQueueClient.health()).toBe(true);
     });
 
     it("should fail the health check for a bad url", async () => {
-      const badClient = new SqsQueueClient(
-        "bad-queue-url",
-        1,
-        10,
-        5,
-        "ap-southeast-2",
-        "keyId",
-        "accessKey"
-      );
+      const badClient = new SqsQueueClient("bad-queue-url", {
+        region: "ap-southeast-2",
+        accessKeyId: "keyId",
+        secretAccessKey: "accessKey",
+      });
 
       await expect(badClient.health()).rejects.toEqual(expect.anything());
     });
@@ -200,24 +230,10 @@ describe("SqsQueueClient", () => {
   describe("Process messages", () => {
     let innerClientDeleteSpy: jest.SpyInstance;
 
-    const testMessageHandler: MessageHandler<
-      { foo: string },
-      { payload: string }
-    > = {
-      type: "TestMessageType",
-      handleMessage: jest.fn().mockResolvedValue(undefined),
-      validateMessage: jest
-        .fn()
-        .mockImplementation(
-          (message) =>
-            message.type !== undefined &&
-            (message.attributes as { foo: string }).foo !== undefined &&
-            (message.body as { payload: string }).payload !== undefined
-        ) as unknown as MessageHandler<
-        { foo: string },
-        { payload: string }
-      >["validateMessage"],
-    };
+    let testMessageHandler: MessageHandler<
+      { payload: string },
+      { foo: string }
+    >;
 
     const testSqsMessage = {
       type: "TestMessageType",
@@ -232,81 +248,95 @@ describe("SqsQueueClient", () => {
     const testSnsMessage = {
       type: "",
       body: {
-        Type: 'Notification',
-        MessageId: 'test-message-id3',
-        TopicArn: 'arn:aws:sns:ap-southeast-2:278322397543:bla',
+        Type: "Notification",
+        MessageId: "test-message-id3",
+        TopicArn: "arn:aws:sns:ap-southeast-2:278322397543:bla",
         Message: JSON.stringify(testSqsMessage.body),
-        Timestamp: '2025-05-08T23:12:15.979Z',
-        SignatureVersion: '1',
-        Signature: 'signature',
-        SigningCertURL: 'cert-url',
-        UnsubscribeURL: 'unsub-url',
+        Timestamp: "2025-05-08T23:12:15.979Z",
+        SignatureVersion: "1",
+        Signature: "signature",
+        SigningCertURL: "cert-url",
+        UnsubscribeURL: "unsub-url",
         MessageAttributes: {
-          foo: { Type: 'String', Value: testSqsMessage.attributes.foo },
-          type: { Type: 'String', Value: testSqsMessage.type },
+          foo: { Type: "String", Value: testSqsMessage.attributes.foo },
+          type: { Type: "String", Value: testSqsMessage.type },
         },
       },
       attributes: {},
     };
 
     beforeEach(() => {
+      testMessageHandler = {
+        type: "TestMessageType",
+        handleMessage: jest.fn().mockResolvedValue(undefined),
+        validateMessage: jest
+          .fn()
+          .mockImplementation(
+            (message) =>
+              message.type !== undefined &&
+              (message.attributes as { foo: string }).foo !== undefined &&
+              (message.body as { payload: string }).payload !== undefined
+          ) as unknown as MessageHandler<
+          { payload: string },
+          { foo: string }
+        >["validateMessage"],
+      };
+
       innerClientDeleteSpy = jest.spyOn(
         sqsQueueClient["client"],
         "deleteMessage"
       );
       sqsQueueClient.registerMessageHandler(testMessageHandler);
+      fifoQueueClient.registerMessageHandler(testMessageHandler);
     });
 
     it.each([
       ["SQS", testSqsMessage],
       ["SNS", testSnsMessage],
-    ])(
-      "should process messages from %s",
-      async (_, message) => {
-        await sqsQueueClient.sendMessages(message);
-        await sqsQueueClient["pollOnceForMessages"]();
+    ])("should process messages from %s", async (_, message) => {
+      await sqsQueueClient.sendMessages(message);
+      await sqsQueueClient.pollOnceForMessages();
 
-        expect(testMessageHandler.validateMessage).toHaveBeenCalledWith(
-          expect.objectContaining({
+      expect(testMessageHandler.validateMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "TestMessageType",
+          attributes: {
             type: "TestMessageType",
-            attributes: {
-              type: "TestMessageType",
-              foo: "bar",
-            },
-            body: {
-              payload: "test",
-            },
-          })
-        );
-        expect(testMessageHandler.handleMessage).toHaveBeenCalledWith(
-          expect.objectContaining({
+            foo: "bar",
+          },
+          body: {
+            payload: "test",
+          },
+        })
+      );
+      expect(testMessageHandler.handleMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "TestMessageType",
+          attributes: {
             type: "TestMessageType",
-            attributes: {
-              type: "TestMessageType",
-              foo: "bar",
-            },
-            body: {
-              payload: "test",
-            },
-          })
-        );
+            foo: "bar",
+          },
+          body: {
+            payload: "test",
+          },
+        })
+      );
 
-        expect(innerClientDeleteSpy).toHaveBeenCalledWith(
-          expect.objectContaining({
+      expect(innerClientDeleteSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          QueueUrl: queueUrl,
+          ReceiptHandle: expect.anything(),
+        })
+      );
+      expect(
+        (
+          await testSqsClient.receiveMessage({
             QueueUrl: queueUrl,
-            ReceiptHandle: expect.anything(),
+            MaxNumberOfMessages: 1,
           })
-        );
-        expect(
-          (
-            await testSqsClient.receiveMessage({
-              QueueUrl: queueUrl,
-              MaxNumberOfMessages: 1,
-            })
-          ).Messages
-        ).toHaveLength(0);
-      }
-    );
+        ).Messages
+      ).toHaveLength(0);
+    });
 
     it("should not delete failing messages", async () => {
       (testMessageHandler.handleMessage as jest.Mock).mockRejectedValue("fail");
@@ -316,7 +346,7 @@ describe("SqsQueueClient", () => {
         attributes: {} as MessageAttributes,
         body: "This body is a string",
       });
-      await sqsQueueClient["pollOnceForMessages"]();
+      await sqsQueueClient.pollOnceForMessages();
 
       expect(testMessageHandler.validateMessage).toHaveBeenCalledTimes(1);
       expect(testMessageHandler.handleMessage).toHaveBeenCalledTimes(1);
@@ -332,6 +362,33 @@ describe("SqsQueueClient", () => {
           })
         ).Messages
       ).toHaveLength(0);
+    });
+
+    it("should send and process messages on fifo/dedup queues correctly", async () => {
+      await fifoQueueClient.sendMessages(
+        {
+          ...testSqsMessage,
+          messageGroupId: "123",
+        },
+        {
+          ...testSqsMessage,
+          messageGroupId: "123",
+        }, // This message should get de-duplicated by the content-based de-dup
+        {
+          ...testSqsMessage,
+          messageGroupId: "123",
+          messageDeduplicationId: "de-dup",
+        },
+        {
+          ...testSqsMessage,
+          body: { payload: "something different " },
+          messageGroupId: "123",
+          messageDeduplicationId: "de-dup",
+        } // Should get removed based on de-dup id even though body is different
+      );
+      await fifoQueueClient.pollOnceForMessages();
+
+      expect(testMessageHandler.handleMessage).toHaveBeenCalledTimes(2);
     });
   });
 });
