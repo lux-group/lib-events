@@ -233,6 +233,23 @@ describe("SqsQueueClient", () => {
       expect(messages.Messages).toBeDefined();
       expect(messages.Messages).toHaveLength(1);
     });
+
+    it("should fail when attempting to send more than 10 messages", async () => {
+      await expect(
+        sqsQueueClient.sendMessages(
+          ...Array.from({ length: 11 }).map(() => testMessage1)
+        )
+      ).rejects.toThrow();
+    });
+
+    it("should fail when attempting to send a message that is too large", async () => {
+      await expect(
+        sqsQueueClient.sendMessages({
+          ...testMessage1,
+          body: { payload: "a".repeat(300_000) },
+        })
+      ).rejects.toThrow();
+    });
   });
 
   describe("Process messages", () => {

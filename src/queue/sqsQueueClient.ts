@@ -115,11 +115,19 @@ export class SqsQueueClient implements QueueClient {
     );
   }
 
+  /**
+   * Sends messages to the SQS queue. The total number of messages in a single
+   * batch cannot exceed 10. The total size of a message batch cannot exceed 256 kb.
+   */
   async sendMessages(
     ...messages: (Message<unknown> & {
       delaySeconds?: number;
     })[]
   ): Promise<void> {
+    if (messages.length > 10) {
+      throw new Error("Cannot send more than 10 messages in a batch.");
+    }
+
     const result = await this.client.sendMessageBatch({
       QueueUrl: this.queueUrl,
       Entries: messages.map((message, index) => ({
@@ -149,7 +157,7 @@ export class SqsQueueClient implements QueueClient {
   }
 
   /**
-   * This method polls once for messages and processes then.
+   * This method polls once for messages and processes them.
    */
   async pollOnceForMessages(): Promise<void> {
     try {
@@ -207,9 +215,9 @@ export class SqsQueueClient implements QueueClient {
     message: SqsMessage,
     messageType: string
   ): Promise<void> {
-    this.logger.info("Deleted message from SQS", {
-      messageType,
-    });
+    const contextAwareLogger = this.logger.child({ messageType });
+    contextAwareLogger.info("Deleting message from SQS");
+
     return message.ReceiptHandle
       ? this.client
           .deleteMessage({
@@ -217,7 +225,15 @@ export class SqsQueueClient implements QueueClient {
             ReceiptHandle: message.ReceiptHandle,
           })
           .then(() => {
-            return;
+            contextAwareLogger.info("Deleted message from SQS");
+          })
+          .catch((error) => {
+            contextAwareLogger.error("Error deleting message from SQS", {
+              error: {
+                message: (error as Error).message,
+                stack: (error as Error).stack,
+              },
+            });
           })
       : Promise.resolve();
   }
