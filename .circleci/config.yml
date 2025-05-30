@@ -1,13 +1,23 @@
 version: 2
 
+elasticMq-image: &elasticMq-image
+  image: softwaremill/elasticmq-native:latest
+node: &node-image
+  image: cimg/node:18.20.4
+
 defaults: &defaults
   working_directory: ~/repo
   docker:
-    - image: cimg/node:18.20.4
+    - <<: *node-image
 
 jobs:
   test:
     <<: *defaults
+    docker:
+      - <<: *node-image
+      - <<: *elasticMq-image
+    environment:
+      ELASTIC_MQ_URL: http://localhost:9324
     steps:
       - checkout
       - run: yarn install
