@@ -23,6 +23,29 @@ const DEFAULT_LONG_POLL_DURATION_SECONDS = 1;
 const DEFAULT_MAX_NUMBER_OF_MESSAGES = 10;
 const DEFAULT_VISIBILITY_TIMEOUT_SECONDS = 30;
 
+export type SqsMessageParams = {
+  /**
+   * Optional. The number of seconds that a message will be invisible for when
+   * put on the queue.
+   */
+  delaySeconds?: number;
+}
+
+export type FifoMessageParams = {
+  /**
+   * The message group id used as the partitioning key for FIFO queues.
+   * Optional. Used for FIFO queues.
+   */
+  messageGroupId?: string;
+
+  /**
+   * Message deduplication id, used for message deduplication when content-based
+   * deduplication is disabled or overridden. Used for FIFO queues.
+   * Optional. Used for manual de-duplication in FIFO queues.
+   */
+  messageDeduplicationId?: string;
+}
+
 export class SqsQueueClient implements QueueClient {
   private readonly client: SQS;
   private readonly queueUrl: string;
@@ -120,9 +143,7 @@ export class SqsQueueClient implements QueueClient {
    * batch cannot exceed 10. The total size of a message batch cannot exceed 256 kb.
    */
   async sendMessages(
-    ...messages: (Message<unknown> & {
-      delaySeconds?: number;
-    })[]
+    ...messages: (Message<unknown> & SqsMessageParams & FifoMessageParams)[]
   ): Promise<void> {
     if (messages.length > 10) {
       throw new Error("Cannot send more than 10 messages in a batch.");

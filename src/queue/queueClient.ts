@@ -24,19 +24,6 @@ export type Message<
    * Body of the message.
    */
   body: Body;
-
-  /**
-   * The message group id used as the partitioning key for FIFO queues.
-   * Optional. Used for FIFO queues.
-   */
-  messageGroupId?: string;
-
-  /**
-   * Message deduplication id, used for message deduplication when content-based
-   * deduplication is disabled or overridden. Used for FIFO queues.
-   * Optional. Used for manual de-duplication in FIFO queues.
-   */
-  messageDeduplicationId?: string;
 };
 
 /**
