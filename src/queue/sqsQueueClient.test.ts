@@ -145,14 +145,13 @@ describe("SqsQueueClient", () => {
 
   describe("Send Messages", () => {
     const testMessage1 = {
-      type: "test1",
       attributes: {
         stringAttribute: "stringValue",
         numberAttribute: 421,
         objectAttribute: {
           foo: "bar",
         },
-        type: "this-should-get-overridden-with-test1",
+        type: "test1",
       },
       body: {
         test: true,
@@ -161,8 +160,7 @@ describe("SqsQueueClient", () => {
     };
 
     const testMessage2 = {
-      type: "test2",
-      attributes: {} as MessageAttributes,
+      attributes: { type: "test2" },
       body: "This body is a string",
     };
 
@@ -257,12 +255,12 @@ describe("SqsQueueClient", () => {
 
     let testMessageHandler: MessageHandler<
       { payload: string },
-      { foo: string }
+      { foo: string } & MessageAttributes
     >;
 
     const testSqsMessage = {
-      type: "TestMessageType",
       attributes: {
+        type: "TestMessageType",
         foo: "bar",
       },
       body: {
@@ -271,7 +269,6 @@ describe("SqsQueueClient", () => {
     };
 
     const testSnsMessage = {
-      type: "",
       body: {
         Type: "Notification",
         MessageId: "test-message-id3",
@@ -284,10 +281,10 @@ describe("SqsQueueClient", () => {
         UnsubscribeURL: "unsub-url",
         MessageAttributes: {
           foo: { Type: "String", Value: testSqsMessage.attributes.foo },
-          type: { Type: "String", Value: testSqsMessage.type },
+          type: { Type: "String", Value: testSqsMessage.attributes.type },
         },
       },
-      attributes: {},
+      attributes: {} as MessageAttributes,
     };
 
     beforeEach(() => {
@@ -298,12 +295,11 @@ describe("SqsQueueClient", () => {
           .fn()
           .mockImplementation(
             (message) =>
-              message.type !== undefined &&
               (message.attributes as { foo: string }).foo !== undefined &&
               (message.body as { payload: string }).payload !== undefined
           ) as unknown as MessageHandler<
           { payload: string },
-          { foo: string }
+          { foo: string } & MessageAttributes
         >["validateMessage"],
       };
 
@@ -324,7 +320,6 @@ describe("SqsQueueClient", () => {
 
       expect(testMessageHandler.validateMessage).toHaveBeenCalledWith(
         expect.objectContaining({
-          type: "TestMessageType",
           attributes: {
             type: "TestMessageType",
             foo: "bar",
@@ -336,7 +331,6 @@ describe("SqsQueueClient", () => {
       );
       expect(testMessageHandler.handleMessage).toHaveBeenCalledWith(
         expect.objectContaining({
-          type: "TestMessageType",
           attributes: {
             type: "TestMessageType",
             foo: "bar",
@@ -367,8 +361,7 @@ describe("SqsQueueClient", () => {
       (testMessageHandler.handleMessage as jest.Mock).mockRejectedValue("fail");
 
       await sqsQueueClient.sendMessages(testSqsMessage, {
-        type: "unknown-message-type",
-        attributes: {} as MessageAttributes,
+        attributes: { type: "unknown-message-type" },
         body: "This body is a string",
       });
       await sqsQueueClient.pollOnceForMessages();

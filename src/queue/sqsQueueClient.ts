@@ -29,7 +29,7 @@ export type SqsMessageParams = {
    * put on the queue.
    */
   delaySeconds?: number;
-}
+};
 
 export type FifoMessageParams = {
   /**
@@ -44,7 +44,7 @@ export type FifoMessageParams = {
    * Optional. Used for manual de-duplication in FIFO queues.
    */
   messageDeduplicationId?: string;
-}
+};
 
 export class SqsQueueClient implements QueueClient {
   private readonly client: SQS;
@@ -159,7 +159,6 @@ export class SqsQueueClient implements QueueClient {
         MessageDeduplicationId: message.messageDeduplicationId?.toString(),
         MessageAttributes: {
           ...this.mapAttributesToSqsMessageAttributes(message.attributes),
-          ...this.formatMessageType(message.type),
         },
       })),
     });
@@ -219,19 +218,6 @@ export class SqsQueueClient implements QueueClient {
     }
   }
 
-  private formatMessageType(
-    messageType: string
-  ): Record<string, MessageAttributeValue> {
-    return messageType
-      ? {
-          type: {
-            StringValue: messageType,
-            DataType: "String",
-          },
-        }
-      : {};
-  }
-
   private deleteSqsMessage(
     message: SqsMessage,
     messageType: string
@@ -269,11 +255,13 @@ export class SqsQueueClient implements QueueClient {
     handler: MessageHandler<Body, Attributes>;
   }> {
     // Find the message handler
-    const handler = this.messageHandlers.get(message.type) as
+    const handler = this.messageHandlers.get(message.attributes.type) as
       | MessageHandler<Body, Attributes>
       | undefined;
     if (!handler) {
-      throw new Error(`No handler found for message type ${message.type}`);
+      throw new Error(
+        `No handler found for message type ${message.attributes.type}`
+      );
     }
 
     // Validate the message
@@ -324,7 +312,7 @@ export class SqsQueueClient implements QueueClient {
 
     // Checking if the message came from an SNS notification
     if (
-      !message.MessageAttributes?.Type &&
+      !message.MessageAttributes?.type &&
       messageBody?.Type === "Notification"
     ) {
       const snsMessage = messageBody as {
@@ -332,20 +320,17 @@ export class SqsQueueClient implements QueueClient {
         MessageAttributes: Record<string, { Type: string; Value: unknown }>;
       };
       return {
-        type:
-          (snsMessage.MessageAttributes?.type?.Value as string) ?? "UNKNOWN",
         attributes: Object.entries(snsMessage.MessageAttributes ?? {})
           .map(([key, value]) => this.mapSnsAttributeToRecord(key, value))
-          .reduce((acc, curr) => ({ ...acc, ...curr }), {}),
+          .reduce((acc, curr) => ({ ...acc, ...curr }), {}) as MessageAttributes,
         body: JSON.parse(snsMessage.Message ?? "{}"),
       };
     }
 
     return {
-      type: message.MessageAttributes?.type?.StringValue ?? "UNKNOWN",
       attributes: Object.entries(message.MessageAttributes ?? {})
         .map(([key, value]) => this.mapSqsAttributeToRecord(key, value))
-        .reduce((acc, curr) => ({ ...acc, ...curr }), {}),
+        .reduce((acc, curr) => ({ ...acc, ...curr }), {}) as MessageAttributes,
       body: JSON.parse(message.Body ?? "{}"),
     };
   }
@@ -367,7 +352,7 @@ export class SqsQueueClient implements QueueClient {
       throw new Error(`Unsupported data type: ${value.DataType}`);
     }
 
-    return { [key]: resolvedValue };
+    return { [key]: resolvedValue } as MessageAttributes;
   }
 
   private mapSnsAttributeToRecord(
@@ -385,6 +370,6 @@ export class SqsQueueClient implements QueueClient {
       throw new Error(`Unsupported data type: ${JSON.stringify(value)}`);
     }
 
-    return { [key]: resolvedValue };
+    return { [key]: resolvedValue } as MessageAttributes;
   }
 }

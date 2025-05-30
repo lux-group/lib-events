@@ -1,7 +1,12 @@
 /**
  * Metadata about a message.
  */
-export type MessageAttributes = Record<string, string | number | object>;
+export type MessageAttributes = {
+  /**
+   * The message type. Used to find the associated message handler.
+   */
+  type: string;
+};
 
 /**
  * A message that can be placed on a queue.
@@ -12,10 +17,6 @@ export type Message<
   Body,
   Attributes extends MessageAttributes = MessageAttributes
 > = {
-  /**
-   * The message type. Used to find the associated message handler.
-   */
-  type: string;
   /**
    * Metadata associated with the message.
    */
