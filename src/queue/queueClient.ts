@@ -81,12 +81,15 @@ export interface QueueClient {
   startPollForMessages: () => Promise<never>;
 
   /**
+   * This method polls once for messages and processes them.
+   */
+  pollOnceForMessages: () => Promise<void>
+
+  /**
    * Sends/adds messages to the queue (with an optional delay).
    * @param messages A message (with an optional delay) to be added to the queue.
    */
   sendMessages: (
-    ...messages: (Message<unknown> & {
-      delaySeconds?: number;
-    })[]
+    ...messages: Message<unknown>[]
   ) => Promise<void>;
 }
